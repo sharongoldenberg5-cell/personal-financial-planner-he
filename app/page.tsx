@@ -25,22 +25,17 @@ const COLORS = ['#2563eb', '#7c3aed', '#16a34a', '#d97706', '#dc2626', '#0891b2'
 export default function DashboardPage() {
   const { t, locale } = useTranslation();
   const [state, setState] = useState<AppState | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setState(loadState());
+    setIsMobile(window.innerWidth < 1024);
   }, []);
 
   if (!state) return null;
 
   const Arrow = locale === 'he' ? ArrowLeft : ArrowRight;
-
-  // Welcome screen only on mobile for new users
   const isNewUser = !state.profile;
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 1024);
-  }, []);
 
   if (isNewUser && isMobile) {
     return (
