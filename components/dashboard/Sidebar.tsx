@@ -36,7 +36,7 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-surface border-e border-border min-h-screen flex flex-col shadow-sm">
       <div className="p-4 border-b border-border flex flex-col items-center gap-2">
-        <img src="/captain.png" alt="Logo" className="max-w-[140px]" />
+        <img src="/captain.png" alt="Logo" className="max-w-[90px]" />
         <div className="text-center">
           <h1 className="text-lg font-bold text-primary leading-tight">{t('app.title')}</h1>
           <p className="text-[10px] text-text-light">{t('app.subtitle')}</p>
