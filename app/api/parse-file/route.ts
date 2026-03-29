@@ -104,6 +104,9 @@ setInterval(() => {
   }
 }, 60000);
 
+// Allow up to 60 seconds for OCR processing on Vercel
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
