@@ -466,8 +466,8 @@ export default function UploadPage() {
       {/* External services links */}
       <div className="mt-4 space-y-3">
         {/* Main services */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <a href="https://har-pe.org.il/login/" target="_blank" rel="noopener noreferrer"
+        <div>
+          <a href="https://www.swiftness.co.il/" target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
             <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
               <Shield size={20} className="text-blue-600" />
@@ -475,16 +475,6 @@ export default function UploadPage() {
             <div>
               <p className="text-sm font-medium">{t('upload.mislakaLink')}</p>
               <p className="text-[10px] text-text-light">{t('upload.mislakaLinkDesc')}</p>
-            </div>
-          </a>
-          <a href="https://www.boi.org.il/information/interestrates/mortgage/" target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
-            <div className="bg-orange-100 p-2 rounded-lg flex-shrink-0">
-              <Building size={20} className="text-orange-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">{t('upload.boiLink')}</p>
-              <p className="text-[10px] text-text-light">{t('upload.boiLinkDesc')}</p>
             </div>
           </a>
         </div>
