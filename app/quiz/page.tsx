@@ -222,7 +222,7 @@ const recommendationTemplates: Record<string, { title: string; text: string; pro
   },
 };
 
-type QuizPhase = 'intro' | 'quiz' | 'results' | 'lead';
+type QuizPhase = 'intro' | 'quiz' | 'results' | 'deepcheck' | 'lead';
 
 export default function QuizPage() {
   const { t } = useTranslation();
@@ -234,6 +234,8 @@ export default function QuizPage() {
   const [categoryScores, setCategoryScores] = useState<Record<string, number[]>>({});
   const [leadForm, setLeadForm] = useState({ name: '', phone: '', email: '', preferredTime: '' });
   const [leadSubmitted, setLeadSubmitted] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<{ name: string; type: 'mislaka' | 'mortgage'; status: 'uploading' | 'done' | 'error'; insight?: string }[]>([]);
+  const [heatBonus, setHeatBonus] = useState(0);
 
   const totalQuestions = questions.length;
   const answeredCount = Object.keys(answers).length;
@@ -262,9 +264,9 @@ export default function QuizPage() {
   const totalScore = Object.values(answers).reduce((s, v) => s + v, 0);
   const maxScore = totalQuestions * 4;
   const percentScore = Math.round((totalScore / maxScore) * 100);
-  const heatTotal = Object.values(heatAnswers).reduce((s, v) => s + v, 0);
-  const heatMax = totalQuestions * 4;
-  const heatPercent = Math.round((heatTotal / heatMax) * 100);
+  const heatTotal = Object.values(heatAnswers).reduce((s, v) => s + v, 0) + heatBonus;
+  const heatMax = totalQuestions * 4 + 50;
+  const heatPercent = Math.min(100, Math.round((heatTotal / heatMax) * 100));
 
   const getStatus = () => {
     if (percentScore >= 70) return { color: '#16a34a', bg: 'bg-green-50', border: 'border-green-200', label: 'יציבות פיננסית', emoji: '🟢' };
@@ -292,6 +294,53 @@ export default function QuizPage() {
     return 'מתכנן פיננסי';
   };
 
+  const handleFileUpload = async (file: File, type: 'mislaka' | 'mortgage') => {
+    const entry = { name: file.name, type, status: 'uploading' as const };
+    setUploadedFiles(prev => [...prev, entry]);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const resp = await fetch('/api/parse-file', { method: 'POST', body: formData });
+      if (!resp.ok) throw new Error('Upload failed');
+      const data = await resp.json();
+
+      let insight = '';
+      let bonus = 0;
+
+      if (data.status === 'done') {
+        const result = data.result?.data || data.result;
+        if (result?.mortgageReport) {
+          const m = result.mortgageReport;
+          insight = `זוהה דוח משכנתא: ${m.bank} | יתרה לסילוק: ${m.totalBalance?.toLocaleString()} ₪ | ${m.subLoans?.filter((s: {currentBalance: number}) => s.currentBalance > 0).length} מסלולים`;
+          bonus = 30;
+        } else if (result?.records?.length > 0) {
+          insight = `זוהו ${result.records.length} רשומות מהקובץ`;
+          bonus = 20;
+        }
+      } else if (data.status === 'processing') {
+        insight = 'הקובץ בעיבוד... התוצאות יופיעו בהמשך';
+        bonus = 30;
+      }
+
+      if (type === 'mislaka') {
+        if (data.status === 'done' && data.result?.data?.files?.[0]?.mislakaData) {
+          const md = data.result.data.files[0].mislakaData;
+          const totalBal = md.products?.reduce((s: number, p: {totalBalance: number}) => s + p.totalBalance, 0) || 0;
+          insight = `זוהו ${md.products?.length} מוצרים פנסיוניים | סה"כ צבירה: ${totalBal.toLocaleString()} ₪`;
+          bonus = 30;
+        } else {
+          bonus = 30;
+        }
+      }
+
+      setHeatBonus(prev => prev + bonus);
+      setUploadedFiles(prev => prev.map(f => f.name === file.name ? { ...f, status: 'done', insight } : f));
+    } catch {
+      setUploadedFiles(prev => prev.map(f => f.name === file.name ? { ...f, status: 'error', insight: 'שגיאה בעיבוד הקובץ' } : f));
+    }
+  };
+
   const handleLeadSubmit = () => {
     // Save lead data
     const leadData = {
@@ -305,6 +354,8 @@ export default function QuizPage() {
       recommendations: getRecommendations().map(r => r.title),
       proType: getProType(),
       answers: { ...answers },
+      uploadedFiles: uploadedFiles.filter(f => f.status === 'done').map(f => f.name),
+      hasUploads: uploadedFiles.some(f => f.status === 'done'),
       timestamp: new Date().toISOString(),
     };
     // Store in localStorage for now (will be DB later)
@@ -453,24 +504,63 @@ export default function QuizPage() {
             ))}
           </div>
 
+          {/* Deep Check - Upload files */}
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-6">
+            <h2 className="text-lg font-bold text-primary mb-2">רוצה תוצאות מדויקות יותר?</h2>
+            <p className="text-sm text-text-light mb-4">העלה קבצים ונוכל לתת לך ניתוח ספציפי עם מספרים אמיתיים</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              {/* Upload Mislaka */}
+              <label className="flex flex-col items-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-blue-300 hover:border-primary cursor-pointer transition-colors">
+                <Shield size={28} className="text-blue-500" />
+                <span className="text-sm font-medium">העלה קובץ מסלקה</span>
+                <span className="text-[10px] text-text-light">ZIP מהמסלקה הפנסיונית</span>
+                <input type="file" accept=".zip" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, 'mislaka'); }} />
+              </label>
+
+              {/* Upload Mortgage */}
+              <label className="flex flex-col items-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-orange-300 hover:border-orange-500 cursor-pointer transition-colors">
+                <Building size={28} className="text-orange-500" />
+                <span className="text-sm font-medium">העלה דוח יתרה לסילוק</span>
+                <span className="text-[10px] text-text-light">PDF מהבנק</span>
+                <input type="file" accept=".pdf" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, 'mortgage'); }} />
+              </label>
+            </div>
+
+            {/* Upload status */}
+            {uploadedFiles.length > 0 && (
+              <div className="space-y-2">
+                {uploadedFiles.map((f, i) => (
+                  <div key={i} className={`flex items-center gap-3 p-3 rounded-lg text-sm ${
+                    f.status === 'done' ? 'bg-green-50 border border-green-200' :
+                    f.status === 'error' ? 'bg-red-50 border border-red-200' :
+                    'bg-white border border-gray-200'
+                  }`}>
+                    {f.status === 'uploading' && <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
+                    {f.status === 'done' && <CheckCircle size={16} className="text-success flex-shrink-0" />}
+                    {f.status === 'error' && <AlertTriangle size={16} className="text-danger flex-shrink-0" />}
+                    <div>
+                      <p className="font-medium">{f.name}</p>
+                      {f.insight && <p className="text-xs text-text-light mt-0.5">{f.insight}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* CTA */}
           <div className="bg-primary/5 border-2 border-primary rounded-2xl p-6 text-center">
-            <h2 className="text-xl font-bold text-primary mb-2">רוצה לדעת בדיוק כמה אתה יכול לחסוך?</h2>
-            <p className="text-sm text-text-light mb-4">{getProType()} מומחה יבדוק את המצב שלך ויציג לך תמונה מלאה - בחינם וללא התחייבות</p>
+            <h2 className="text-xl font-bold text-primary mb-2">רוצה שמומחה יבדוק את המצב שלך?</h2>
+            <p className="text-sm text-text-light mb-4">{getProType()} מומחה יציג לך תמונה מלאה - בחינם וללא התחייבות</p>
             <button
               onClick={() => setPhase('lead')}
               className="px-8 py-3 bg-primary text-white text-lg font-bold rounded-xl hover:bg-primary-dark transition-colors w-full"
             >
               רוצה שיחזרו אליי
             </button>
-          </div>
-
-          {/* Or upload mislaka */}
-          <div className="text-center mt-6">
-            <p className="text-sm text-text-light mb-2">או רוצה להעמיק בעצמך?</p>
-            <a href="/upload" className="text-primary text-sm font-medium hover:underline">
-              העלה קובץ מסלקה לבדיקה מעמיקה ←
-            </a>
           </div>
         </div>
       </div>
