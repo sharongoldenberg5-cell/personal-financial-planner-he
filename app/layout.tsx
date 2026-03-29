@@ -49,13 +49,13 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <meta property="og:title" content="קפטן פיננסי" />
         <meta property="og:description" content="מנווטים את הדרך הפיננסית שלך" />
-        <meta property="og:image" content="https://personal-financial-planner-he.vercel.app/captain.png" />
+        <meta property="og:image" content="https://personal-financial-planner-he.vercel.app/og-image.jpg" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://personal-financial-planner-he.vercel.app/" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="קפטן פיננסי" />
         <meta name="twitter:description" content="מנווטים את הדרך הפיננסית שלך" />
-        <meta name="twitter:image" content="https://personal-financial-planner-he.vercel.app/captain.png" />
+        <meta name="twitter:image" content="https://personal-financial-planner-he.vercel.app/og-image.jpg" />
       </head>
       <body className="min-h-screen flex bg-background">
         <LocaleContext.Provider value={contextValue}>
