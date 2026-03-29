@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from '@/lib/translations';
@@ -15,6 +16,8 @@ import {
   Target,
   Lightbulb,
   Globe,
+  Menu,
+  X,
 } from 'lucide-react';
 
 const navItems = [
@@ -32,9 +35,10 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { t, locale, setLocale } = useTranslation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  return (
-    <aside className="w-64 bg-surface border-e border-border min-h-screen flex flex-col shadow-sm">
+  const sidebarContent = (
+    <>
       <div className="p-4 border-b border-border flex flex-col items-center gap-2">
         <img src="/captain.png" alt="Logo" className="max-w-[90px]" />
         <div className="text-center">
@@ -50,6 +54,7 @@ export function Sidebar() {
             <Link
               key={key}
               href={href}
+              onClick={() => setMobileOpen(false)}
               className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium',
                 isActive
@@ -73,6 +78,42 @@ export function Sidebar() {
           <span>{locale === 'he' ? 'English' : 'עברית'}</span>
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-3 start-3 z-50 p-2 bg-surface rounded-lg shadow-md border border-border"
+      >
+        <Menu size={24} className="text-primary" />
+      </button>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setMobileOpen(false)} />
+      )}
+
+      {/* Mobile sidebar (slide in) */}
+      <aside className={cn(
+        'lg:hidden fixed top-0 start-0 h-full w-72 bg-surface border-e border-border shadow-xl z-50 flex flex-col transition-transform duration-300',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
+      )}>
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="absolute top-3 end-3 p-1 text-text-light hover:text-text"
+        >
+          <X size={20} />
+        </button>
+        {sidebarContent}
+      </aside>
+
+      {/* Desktop sidebar (always visible) */}
+      <aside className="hidden lg:flex w-64 bg-surface border-e border-border min-h-screen flex-col shadow-sm">
+        {sidebarContent}
+      </aside>
+    </>
   );
 }
