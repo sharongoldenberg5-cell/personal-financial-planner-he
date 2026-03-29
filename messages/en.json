@@ -192,7 +192,13 @@
     "clearAll": "Clear all",
     "filesUploaded": "files uploaded",
     "importAll": "Import All",
-    "createAllLiabilities": "Create All Liabilities"
+    "createAllLiabilities": "Create All Liabilities",
+    "mislakaLink": "Pension Clearing House",
+    "mislakaLinkDesc": "Order Mislaka files from Har HaPensia",
+    "taxLink": "Tax Authority",
+    "taxLinkDesc": "Tax assessments and refunds",
+    "boiLink": "Bank of Israel - Rates",
+    "boiLinkDesc": "Current mortgage rates"
   },
   "pension": {
     "title": "Your Pension",

@@ -8,7 +8,7 @@ import type { FinancialRecord, Asset, Liability, MortgageReport as MortgageRepor
 import {
   Upload, FileSpreadsheet, CheckCircle, AlertCircle, X,
   FileText, FileArchive, File as FileIcon, Wallet, TrendingDown,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, Shield, Building,
 } from 'lucide-react';
 
 interface MortgageSubLoan {
@@ -461,6 +461,40 @@ export default function UploadPage() {
           <p className="text-sm text-text-light">{t('upload.supportedFormats')}</p>
           <p className="text-xs text-text-light mt-1">{t('upload.multipleFiles')}</p>
         </label>
+      </div>
+
+      {/* External services links */}
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <a href="https://www.har-pe.org.il/" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
+          <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
+            <Shield size={20} className="text-blue-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">{t('upload.mislakaLink')}</p>
+            <p className="text-[10px] text-text-light">{t('upload.mislakaLinkDesc')}</p>
+          </div>
+        </a>
+        <a href="https://www.misim.gov.il/shmishomts/frmHomePage.aspx" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
+          <div className="bg-green-100 p-2 rounded-lg flex-shrink-0">
+            <Wallet size={20} className="text-green-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">{t('upload.taxLink')}</p>
+            <p className="text-[10px] text-text-light">{t('upload.taxLinkDesc')}</p>
+          </div>
+        </a>
+        <a href="https://www.boi.org.il/information/interestrates/mortgage/" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
+          <div className="bg-orange-100 p-2 rounded-lg flex-shrink-0">
+            <Building size={20} className="text-orange-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">{t('upload.boiLink')}</p>
+            <p className="text-[10px] text-text-light">{t('upload.boiLinkDesc')}</p>
+          </div>
+        </a>
       </div>
 
       {/* Processing indicator */}

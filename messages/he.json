@@ -192,7 +192,13 @@
     "clearAll": "נקה הכל",
     "filesUploaded": "קבצים הועלו",
     "importAll": "ייבא הכל",
-    "createAllLiabilities": "צור התחייבויות מהכל"
+    "createAllLiabilities": "צור התחייבויות מהכל",
+    "mislakaLink": "המסלקה הפנסיונית",
+    "mislakaLinkDesc": "הזמן קבצי מסלקה מהר הפנסיה",
+    "taxLink": "רשות המסים",
+    "taxLinkDesc": "שומות מס והחזרים",
+    "boiLink": "בנק ישראל - ריביות",
+    "boiLinkDesc": "ריביות משכנתא עדכניות"
   },
   "pension": {
     "title": "הפנסיה שלך",
