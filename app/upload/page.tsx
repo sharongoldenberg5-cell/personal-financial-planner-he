@@ -514,8 +514,6 @@ export default function UploadPage() {
               { name: 'מזרחי טפחות', url: 'https://www.mizrahi-tefahot.co.il/' },
               { name: 'הבינלאומי (FIBI)', url: 'https://www.fibi.co.il/' },
               { name: 'בנק ירושלים', url: 'https://www.bankjerusalem.co.il/' },
-              { name: 'ONE ZERO', url: 'https://www.onezerobank.com/' },
-              { name: 'בנק מסד', url: 'https://www.bankmassad.co.il/' },
             ].map(bank => (
               <a key={bank.name} href={bank.url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 p-2 bg-background rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm">
