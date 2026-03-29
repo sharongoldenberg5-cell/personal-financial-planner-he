@@ -34,10 +34,15 @@ export default function DashboardPage() {
 
   const Arrow = locale === 'he' ? ArrowLeft : ArrowRight;
 
-  // Check if new user (no profile)
+  // Welcome screen only on mobile for new users
   const isNewUser = !state.profile;
+  const [isMobile, setIsMobile] = useState(false);
 
-  if (isNewUser) {
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 1024);
+  }, []);
+
+  if (isNewUser && isMobile) {
     return (
       <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
         <img src="/captain.png" alt="Captain" className="w-40 h-auto mb-6" />
