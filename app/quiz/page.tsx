@@ -312,26 +312,27 @@ export default function QuizPage() {
         const result = data.result?.data || data.result;
         if (result?.mortgageReport) {
           const m = result.mortgageReport;
-          insight = `זוהה דוח משכנתא: ${m.bank} | יתרה לסילוק: ${m.totalBalance?.toLocaleString()} ₪ | ${m.subLoans?.filter((s: {currentBalance: number}) => s.currentBalance > 0).length} מסלולים`;
+          const activeLoans = m.subLoans?.filter((s: {currentBalance: number}) => s.currentBalance > 0) || [];
+          const totalBal = m.totalBalance || 0;
+          const avgRate = activeLoans.length > 0
+            ? activeLoans.reduce((s: number, l: {interestRate: number; currentBalance: number}) => s + l.interestRate * l.currentBalance, 0) / totalBal
+            : 0;
+
+          let rateInsight = '';
+          if (avgRate > 5) rateInsight = '⚠️ הריבית הממוצעת שלך גבוהה מהשוק - יש פוטנציאל חיסכון משמעותי!';
+          else if (avgRate > 4) rateInsight = '💡 ייתכן שאפשר לשפר חלק מהמסלולים';
+          else rateInsight = '✓ הריבית שלך סבירה';
+
+          insight = `🏦 ${m.bank || 'הבנק'} | יתרה: ${totalBal.toLocaleString()} ₪ | ${activeLoans.length} מסלולים | ריבית ממוצעת: ${avgRate.toFixed(2)}%\n${rateInsight}`;
           bonus = 30;
         } else if (result?.records?.length > 0) {
-          insight = `זוהו ${result.records.length} רשומות מהקובץ`;
+          insight = `📄 הקובץ עובד בהצלחה - ${result.records.length} רשומות זוהו`;
           bonus = 20;
         }
       } else if (data.status === 'processing') {
-        insight = 'הקובץ בעיבוד... התוצאות יופיעו בהמשך';
+        // File is being processed async (OCR)
+        insight = '📄 הקובץ התקבל! הנתונים יועברו למומחה לבדיקה מעמיקה';
         bonus = 30;
-      }
-
-      if (type === 'mislaka') {
-        if (data.status === 'done' && data.result?.data?.files?.[0]?.mislakaData) {
-          const md = data.result.data.files[0].mislakaData;
-          const totalBal = md.products?.reduce((s: number, p: {totalBalance: number}) => s + p.totalBalance, 0) || 0;
-          insight = `זוהו ${md.products?.length} מוצרים פנסיוניים | סה"כ צבירה: ${totalBal.toLocaleString()} ₪`;
-          bonus = 30;
-        } else {
-          bonus = 30;
-        }
       }
 
       setHeatBonus(prev => prev + bonus);
@@ -504,47 +505,43 @@ export default function QuizPage() {
             ))}
           </div>
 
-          {/* Deep Check - Upload files */}
+          {/* Deep Check - Upload mortgage report */}
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-6">
-            <h2 className="text-lg font-bold text-primary mb-2">רוצה תוצאות מדויקות יותר?</h2>
-            <p className="text-sm text-text-light mb-4">העלה קבצים ונוכל לתת לך ניתוח ספציפי עם מספרים אמיתיים</p>
+            <h2 className="text-lg font-bold text-primary mb-2">🎁 בונוס: בדיקת המשכנתא שלך</h2>
+            <p className="text-sm text-text-light mb-4">העלה את דוח היתרה לסילוק מהבנק וקבל ניתוח מיידי - האם אתה משלם יותר מדי?</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-              {/* Upload Mislaka */}
-              <label className="flex flex-col items-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-blue-300 hover:border-primary cursor-pointer transition-colors">
-                <Shield size={28} className="text-blue-500" />
-                <span className="text-sm font-medium">העלה קובץ מסלקה</span>
-                <span className="text-[10px] text-text-light">ZIP מהמסלקה הפנסיונית</span>
-                <input type="file" accept=".zip" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, 'mislaka'); }} />
-              </label>
-
-              {/* Upload Mortgage */}
-              <label className="flex flex-col items-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-orange-300 hover:border-orange-500 cursor-pointer transition-colors">
-                <Building size={28} className="text-orange-500" />
-                <span className="text-sm font-medium">העלה דוח יתרה לסילוק</span>
-                <span className="text-[10px] text-text-light">PDF מהבנק</span>
-                <input type="file" accept=".pdf" className="hidden"
+            {uploadedFiles.length === 0 ? (
+              <label className="flex items-center gap-4 p-5 bg-white rounded-xl border-2 border-dashed border-blue-300 hover:border-primary cursor-pointer transition-colors">
+                <Building size={32} className="text-primary flex-shrink-0" />
+                <div>
+                  <span className="text-sm font-bold block">העלה דוח יתרה לסילוק</span>
+                  <span className="text-xs text-text-light">PDF שהורדת מאתר הבנק</span>
+                </div>
+                <input type="file" accept=".pdf,.zip" className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, 'mortgage'); }} />
               </label>
-            </div>
-
-            {/* Upload status */}
-            {uploadedFiles.length > 0 && (
-              <div className="space-y-2">
+            ) : (
+              <div className="space-y-3">
                 {uploadedFiles.map((f, i) => (
-                  <div key={i} className={`flex items-center gap-3 p-3 rounded-lg text-sm ${
+                  <div key={i} className={`p-4 rounded-xl text-sm ${
                     f.status === 'done' ? 'bg-green-50 border border-green-200' :
                     f.status === 'error' ? 'bg-red-50 border border-red-200' :
-                    'bg-white border border-gray-200'
+                    'bg-white border border-blue-200'
                   }`}>
-                    {f.status === 'uploading' && <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
-                    {f.status === 'done' && <CheckCircle size={16} className="text-success flex-shrink-0" />}
-                    {f.status === 'error' && <AlertTriangle size={16} className="text-danger flex-shrink-0" />}
-                    <div>
-                      <p className="font-medium">{f.name}</p>
-                      {f.insight && <p className="text-xs text-text-light mt-0.5">{f.insight}</p>}
+                    <div className="flex items-center gap-3 mb-2">
+                      {f.status === 'uploading' && <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
+                      {f.status === 'done' && <CheckCircle size={20} className="text-success flex-shrink-0" />}
+                      {f.status === 'error' && <AlertTriangle size={20} className="text-danger flex-shrink-0" />}
+                      <p className="font-bold">{f.status === 'uploading' ? 'מנתח את המשכנתא שלך...' : f.status === 'done' ? 'הניתוח הושלם!' : 'שגיאה בעיבוד'}</p>
                     </div>
+                    {f.insight && (
+                      <div className="bg-white rounded-lg p-3 mt-2">
+                        <p className="text-sm">{f.insight}</p>
+                      </div>
+                    )}
+                    {f.status === 'done' && (
+                      <p className="text-xs text-success font-medium mt-2">✓ הנתונים נשמרו - המומחה יקבל את הפרטים המלאים</p>
+                    )}
                   </div>
                 ))}
               </div>
