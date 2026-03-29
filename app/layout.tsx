@@ -51,7 +51,7 @@ export default function RootLayout({
           <div className="flex-1 flex flex-col overflow-auto">
             <header className="py-3 border-b border-border bg-surface/50 flex justify-center">
               <div className="flex items-center gap-5 justify-center">
-                <img src="/logo.svg" alt="Logo" className="h-28" />
+                <img src="/captain.png" alt="Logo" className="h-28" />
                 <div>
                   <h1 className="text-3xl font-bold text-primary">{t('app.title')}</h1>
                   <p className="text-sm text-text-light">{t('app.subtitle')}</p>
