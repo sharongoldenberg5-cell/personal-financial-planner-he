@@ -1,65 +1,223 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useTranslation } from '@/lib/translations';
+import { loadState, calculateNetWorth, calculateTotalLiabilities } from '@/lib/storage';
+import { formatCurrency } from '@/lib/utils';
+import type { AppState } from '@/lib/types';
+import {
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  PiggyBank,
+  Target,
+  Lightbulb,
+  Upload,
+  User,
+  ArrowLeft,
+  ArrowRight,
+} from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+
+const COLORS = ['#2563eb', '#7c3aed', '#16a34a', '#d97706', '#dc2626', '#0891b2', '#4f46e5'];
+
+export default function DashboardPage() {
+  const { t, locale } = useTranslation();
+  const [state, setState] = useState<AppState | null>(null);
+
+  useEffect(() => {
+    setState(loadState());
+  }, []);
+
+  if (!state) return null;
+
+  const Arrow = locale === 'he' ? ArrowLeft : ArrowRight;
+  const netWorth = calculateNetWorth();
+  const totalLiabilities = calculateTotalLiabilities();
+  const profile = state.profile;
+  const familyNetIncome = profile ? (profile.monthlyIncome || 0) + (profile.spouseMonthlyIncomeNet || 0) : 0;
+  const monthlySavings = profile ? familyNetIncome - profile.monthlyExpenses : 0;
+  const monthlyDebtPayments = (state.liabilities || []).reduce((s, l) => s + l.monthlyPayment, 0);
+
+  const assetsByCategory = state.assets.reduce<Record<string, number>>((acc, a) => {
+    acc[a.category] = (acc[a.category] || 0) + a.value;
+    return acc;
+  }, {});
+
+  const pieData = Object.entries(assetsByCategory).map(([key, value]) => ({
+    name: t(`assets.categories.${key}`),
+    value,
+  }));
+
+  const goalChartData = state.goals
+    .filter(g => g.status === 'active')
+    .slice(0, 5)
+    .map(g => ({
+      name: g.name.length > 12 ? g.name.slice(0, 12) + '...' : g.name,
+      current: g.currentAmount,
+      target: g.targetAmount,
+    }));
+
+  const quickActions = [
+    { label: t('nav.profile'), href: '/profile', icon: User, color: 'bg-blue-500' },
+    { label: t('nav.upload'), href: '/upload', icon: Upload, color: 'bg-green-500' },
+    { label: t('nav.goals'), href: '/goals', icon: Target, color: 'bg-purple-500' },
+    { label: t('nav.recommendations'), href: '/recommendations', icon: Lightbulb, color: 'bg-orange-500' },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="max-w-6xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">
+        {t('dashboard.welcome')}{profile ? `, ${profile.firstName}` : ''}
+      </h1>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <StatCard
+          icon={<Wallet size={24} />}
+          label={t('dashboard.netWorth')}
+          value={formatCurrency(netWorth)}
+          color="bg-primary"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <StatCard
+          icon={<TrendingUp size={24} />}
+          label={t('dashboard.familyNetIncome')}
+          value={formatCurrency(familyNetIncome)}
+          color="bg-success"
+        />
+        <StatCard
+          icon={<TrendingDown size={24} />}
+          label={t('dashboard.monthlyExpenses')}
+          value={formatCurrency((profile?.monthlyExpenses || 0) + monthlyDebtPayments)}
+          color="bg-danger"
+        />
+        <StatCard
+          icon={<PiggyBank size={24} />}
+          label={t('dashboard.monthlySavings')}
+          value={formatCurrency(monthlySavings - monthlyDebtPayments)}
+          color={monthlySavings - monthlyDebtPayments >= 0 ? 'bg-success' : 'bg-danger'}
+        />
+        <StatCard
+          icon={<TrendingDown size={24} />}
+          label={t('assets.totalLiabilities')}
+          value={formatCurrency(totalLiabilities)}
+          color="bg-red-600"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Asset Distribution */}
+        <div className="bg-surface rounded-xl shadow-sm border border-border p-6">
+          <h2 className="text-lg font-semibold mb-4">{t('dashboard.assetDistribution')}</h2>
+          {pieData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={90}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                >
+                  {pieData.map((_, idx) => (
+                    <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(val) => formatCurrency(Number(val))} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[250px] flex items-center justify-center text-text-light">
+              {t('common.noData')}
+            </div>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Goals Progress */}
+        <div className="bg-surface rounded-xl shadow-sm border border-border p-6">
+          <h2 className="text-lg font-semibold mb-4">{t('dashboard.goalsProgress')}</h2>
+          {goalChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={goalChartData}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip formatter={(val) => formatCurrency(Number(val))} />
+                <Bar dataKey="current" fill="#2563eb" name="Current" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="target" fill="#e2e8f0" name="Target" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[250px] flex items-center justify-center text-text-light">
+              {t('common.noData')}
+            </div>
+          )}
         </div>
-      </main>
+      </div>
+
+      {/* Top Recommendations */}
+      {state.recommendations.length > 0 && (
+        <div className="bg-surface rounded-xl shadow-sm border border-border p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">{t('dashboard.topRecommendations')}</h2>
+            <Link href="/recommendations" className="text-primary text-sm hover:underline flex items-center gap-1">
+              {t('nav.recommendations')} <Arrow size={14} />
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {state.recommendations.slice(0, 3).map(rec => (
+              <div key={rec.id} className="flex items-start gap-3 p-3 bg-background rounded-lg">
+                <Lightbulb size={18} className="text-warning flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-sm">{rec.title}</p>
+                  <p className="text-xs text-text-light mt-0.5">{rec.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      <div className="bg-surface rounded-xl shadow-sm border border-border p-6">
+        <h2 className="text-lg font-semibold mb-4">{t('dashboard.quickActions')}</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {quickActions.map(({ label, href, icon: Icon, color }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-background transition-colors"
+            >
+              <div className={`${color} text-white p-3 rounded-xl`}>
+                <Icon size={24} />
+              </div>
+              <span className="text-sm font-medium">{label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value, color }: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  color: string;
+}) {
+  return (
+    <div className="bg-surface rounded-xl shadow-sm border border-border p-5">
+      <div className="flex items-center gap-3">
+        <div className={`${color} text-white p-2.5 rounded-lg`}>
+          {icon}
+        </div>
+        <div>
+          <p className="text-sm text-text-light">{label}</p>
+          <p className="text-xl font-bold">{value}</p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,234 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 320" width="400" height="320">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FEF3C7"/>
+      <stop offset="50%" stop-color="#FDE68A"/>
+      <stop offset="100%" stop-color="#FBBF24"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0EA5E9"/>
+      <stop offset="100%" stop-color="#0369A1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Warm sunset sky -->
+  <rect width="400" height="320" fill="url(#sky)"/>
+
+  <!-- Big warm sun -->
+  <circle cx="320" cy="80" r="55" fill="#FCD34D" opacity="0.6"/>
+  <circle cx="320" cy="80" r="40" fill="#FBBF24" opacity="0.8"/>
+
+  <!-- Fluffy clouds -->
+  <g opacity="0.6">
+    <ellipse cx="80" cy="50" rx="40" ry="15" fill="white"/>
+    <ellipse cx="60" cy="45" rx="25" ry="12" fill="white"/>
+    <ellipse cx="105" cy="48" rx="22" ry="10" fill="white"/>
+  </g>
+  <g opacity="0.4">
+    <ellipse cx="250" cy="40" rx="30" ry="12" fill="white"/>
+    <ellipse cx="270" cy="36" rx="20" ry="10" fill="white"/>
+  </g>
+
+  <!-- Caribbean sea -->
+  <path d="M 0 200 Q 50 190 100 200 Q 150 210 200 200 Q 250 190 300 200 Q 350 210 400 200 L 400 320 L 0 320 Z" fill="url(#sea)"/>
+  <!-- Wave details -->
+  <path d="M 0 210 Q 40 203 80 210 Q 120 217 160 210 Q 200 203 240 210 Q 280 217 320 210 Q 360 203 400 210" stroke="white" stroke-width="2" fill="none" opacity="0.3"/>
+  <path d="M 0 225 Q 50 218 100 225 Q 150 232 200 225 Q 250 218 300 225 Q 350 232 400 225" stroke="white" stroke-width="1.5" fill="none" opacity="0.2"/>
+
+  <!-- ===== SHIP (background, slightly smaller) ===== -->
+  <!-- Hull -->
+  <path d="M 180 215 L 195 255 L 375 255 L 390 215 Z" fill="#92400E" stroke="#5C2D0E" stroke-width="2"/>
+  <path d="M 195 255 Q 285 268 375 255" fill="#5C2D0E"/>
+  <!-- Gold stripe -->
+  <line x1="187" y1="230" x2="383" y2="230" stroke="#FBBF24" stroke-width="2"/>
+  <!-- Cannons -->
+  <rect x="220" y="233" width="8" height="6" rx="1" fill="#292524"/>
+  <rect x="250" y="233" width="8" height="6" rx="1" fill="#292524"/>
+  <rect x="280" y="233" width="8" height="6" rx="1" fill="#292524"/>
+  <rect x="310" y="233" width="8" height="6" rx="1" fill="#292524"/>
+  <rect x="340" y="233" width="8" height="6" rx="1" fill="#292524"/>
+
+  <!-- Masts -->
+  <line x1="260" y1="90" x2="260" y2="215" stroke="#78350F" stroke-width="5"/>
+  <line x1="330" y1="110" x2="330" y2="215" stroke="#78350F" stroke-width="4"/>
+
+  <!-- Sails -->
+  <path d="M 225 95 Q 260 108 295 95 L 292 140 Q 260 150 228 140 Z" fill="white" stroke="#E5E7EB" stroke-width="1" opacity="0.9"/>
+  <path d="M 230 145 Q 260 155 290 145 L 288 185 Q 260 193 232 185 Z" fill="white" stroke="#E5E7EB" stroke-width="1" opacity="0.9"/>
+  <path d="M 305 115 Q 330 125 355 115 L 352 155 Q 330 162 308 155 Z" fill="white" stroke="#E5E7EB" stroke-width="1" opacity="0.9"/>
+
+  <!-- Flag pennant -->
+  <path d="M 261 85 L 290 93 L 261 100 Z" fill="#FBBF24" stroke="#D97706" stroke-width="0.5"/>
+
+  <!-- Bow ornament -->
+  <path d="M 180 215 Q 165 208 155 198" stroke="#FBBF24" stroke-width="3" fill="none"/>
+
+  <!-- ===== CAPTAIN (foreground, big cartoon style) ===== -->
+
+  <!-- Captain shadow -->
+  <ellipse cx="105" cy="295" rx="55" ry="12" fill="#0369A1" opacity="0.3"/>
+
+  <!-- Boots -->
+  <path d="M 72 278 L 65 295 L 85 295 L 82 278 Z" fill="#292524"/>
+  <path d="M 118 278 L 115 295 L 135 295 L 128 278 Z" fill="#292524"/>
+  <!-- Boot tops (fold) -->
+  <path d="M 70 278 L 84 278" stroke="#57534E" stroke-width="2"/>
+  <path d="M 116 278 L 130 278" stroke="#57534E" stroke-width="2"/>
+  <!-- Boot buckles -->
+  <rect x="72" y="282" width="6" height="4" rx="1" fill="#FBBF24"/>
+  <rect x="120" y="282" width="6" height="4" rx="1" fill="#FBBF24"/>
+
+  <!-- Pants -->
+  <path d="M 75 245 L 70 280 L 85 280 L 90 248 Z" fill="#F5F5DC"/>
+  <path d="M 108 248 L 115 280 L 130 280 L 125 245 Z" fill="#F5F5DC"/>
+
+  <!-- COAT (big navy blue British captain coat) -->
+  <path d="M 60 175 L 52 250 L 148 250 L 140 175 Z" fill="#1E3A8A"/>
+  <!-- Coat inner -->
+  <path d="M 85 178 L 82 245 L 118 245 L 115 178 Z" fill="#DC2626"/>
+  <!-- Coat lapels -->
+  <path d="M 85 178 L 75 200 L 85 210 Z" fill="#1E40AF"/>
+  <path d="M 115 178 L 125 200 L 115 210 Z" fill="#1E40AF"/>
+
+  <!-- Big gold buttons -->
+  <circle cx="88" cy="195" r="3.5" fill="#FBBF24" stroke="#B45309" stroke-width="1"/>
+  <circle cx="88" cy="210" r="3.5" fill="#FBBF24" stroke="#B45309" stroke-width="1"/>
+  <circle cx="88" cy="225" r="3.5" fill="#FBBF24" stroke="#B45309" stroke-width="1"/>
+  <circle cx="112" cy="195" r="3.5" fill="#FBBF24" stroke="#B45309" stroke-width="1"/>
+  <circle cx="112" cy="210" r="3.5" fill="#FBBF24" stroke="#B45309" stroke-width="1"/>
+  <circle cx="112" cy="225" r="3.5" fill="#FBBF24" stroke="#B45309" stroke-width="1"/>
+
+  <!-- Coat tails -->
+  <path d="M 60 240 L 50 275 L 70 275 L 72 240 Z" fill="#1E3A8A"/>
+  <path d="M 140 240 L 148 275 L 130 275 L 128 240 Z" fill="#1E3A8A"/>
+
+  <!-- Belt -->
+  <rect x="58" y="242" width="84" height="6" rx="2" fill="#78350F"/>
+  <rect x="94" y="240" width="12" height="10" rx="2" fill="#FBBF24" stroke="#B45309" stroke-width="1"/>
+
+  <!-- Big gold epaulettes -->
+  <ellipse cx="60" cy="177" rx="12" ry="6" fill="#D97706"/>
+  <g fill="#FBBF24">
+    <rect x="50" y="180" width="3" height="6" rx="1"/>
+    <rect x="55" y="181" width="3" height="7" rx="1"/>
+    <rect x="60" y="182" width="3" height="6" rx="1"/>
+    <rect x="65" y="181" width="3" height="5" rx="1"/>
+  </g>
+  <ellipse cx="140" cy="177" rx="12" ry="6" fill="#D97706"/>
+  <g fill="#FBBF24">
+    <rect x="132" y="180" width="3" height="5" rx="1"/>
+    <rect x="137" y="181" width="3" height="7" rx="1"/>
+    <rect x="142" y="182" width="3" height="6" rx="1"/>
+    <rect x="147" y="181" width="3" height="6" rx="1"/>
+  </g>
+
+  <!-- White cravat/collar -->
+  <path d="M 80 170 Q 100 162 120 170" fill="white"/>
+  <path d="M 90 170 L 100 185 L 110 170 Z" fill="white"/>
+
+  <!-- ===== BIG CARTOON HEAD ===== -->
+  <!-- Head (big and round - cartoon proportion) -->
+  <circle cx="100" cy="140" r="38" fill="#FDBF60"/>
+  <!-- Rosy cheeks -->
+  <circle cx="75" cy="148" r="8" fill="#F97316" opacity="0.25"/>
+  <circle cx="125" cy="148" r="8" fill="#F97316" opacity="0.25"/>
+
+  <!-- TRICORN HAT (big and bold) -->
+  <path d="M 50 130 Q 100 100 150 130 L 147 140 Q 100 118 53 140 Z" fill="#1C1917"/>
+  <!-- Hat brim front -->
+  <path d="M 53 140 Q 100 128 147 140 Q 140 137 100 125 Q 60 137 53 140 Z" fill="#44403C"/>
+  <!-- Gold hat braid -->
+  <path d="M 58 138 Q 100 127 142 138" stroke="#FBBF24" stroke-width="3.5" fill="none"/>
+  <!-- Big cockade -->
+  <circle cx="100" cy="122" r="7" fill="#DC2626"/>
+  <circle cx="100" cy="122" r="4" fill="white"/>
+  <circle cx="100" cy="122" r="2" fill="#DC2626"/>
+  <!-- Fancy feather -->
+  <path d="M 107 120 Q 135 105 145 80 Q 140 95 130 105 Q 125 108 120 112" stroke="white" stroke-width="2.5" fill="none"/>
+  <path d="M 107 120 Q 130 108 138 88" stroke="#E5E7EB" stroke-width="1.5" fill="none"/>
+
+  <!-- BIG CARTOON EYES -->
+  <!-- Left eye -->
+  <ellipse cx="85" cy="138" rx="10" ry="11" fill="white"/>
+  <circle cx="87" cy="139" r="6" fill="#1E3A5F"/>
+  <circle cx="89" cy="137" r="2.5" fill="white"/>
+  <!-- Right eye (squinting - looking through telescope) -->
+  <path d="M 108 133 Q 115 130 122 133 Q 115 136 108 133 Z" fill="#1E3A5F"/>
+
+  <!-- Eyebrows (expressive) -->
+  <path d="M 74 128 Q 85 122 96 128" stroke="#78350F" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 106 130 Q 115 125 124 128" stroke="#78350F" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Nose (cartoon round) -->
+  <ellipse cx="100" cy="148" rx="5" ry="4" fill="#E8A930"/>
+
+  <!-- Big happy smile -->
+  <path d="M 82 156 Q 100 170 118 156" stroke="#78350F" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Teeth showing -->
+  <path d="M 88 158 Q 100 165 112 158" fill="white"/>
+
+  <!-- Stubble/chin -->
+  <path d="M 80 162 Q 100 172 120 162" stroke="#C8A050" stroke-width="1" fill="none" opacity="0.3"/>
+
+  <!-- ===== TELESCOPE (held up to right eye) ===== -->
+  <!-- Right arm reaching up -->
+  <path d="M 140 185 Q 155 168 162 155 Q 168 145 172 138" stroke="#1E3A8A" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <!-- Cuff -->
+  <rect x="163" y="138" width="14" height="8" rx="2" fill="white"/>
+  <!-- Hand -->
+  <circle cx="175" cy="135" r="8" fill="#FDBF60"/>
+  <path d="M 170 130 Q 175 126 180 130" stroke="#E8A930" stroke-width="1.5" fill="none"/>
+
+  <!-- TELESCOPE (big brass spyglass) -->
+  <rect x="120" y="127" width="70" height="14" rx="6" fill="#92400E"/>
+  <!-- Telescope sections -->
+  <rect x="135" y="128" width="5" height="12" rx="2" fill="#FBBF24"/>
+  <rect x="155" y="128" width="5" height="12" rx="2" fill="#FBBF24"/>
+  <rect x="175" y="128" width="5" height="12" rx="2" fill="#FBBF24"/>
+  <!-- Telescope lens (big) -->
+  <circle cx="120" cy="134" r="10" fill="#7DD3FC" stroke="#92400E" stroke-width="2.5"/>
+  <circle cx="120" cy="134" r="6" fill="#BAE6FD"/>
+  <circle cx="117" cy="131" r="3" fill="white" opacity="0.7"/>
+  <!-- Eyepiece -->
+  <rect x="188" y="129" width="8" height="10" rx="3" fill="#78350F"/>
+
+  <!-- Left arm on hip (confident pose) -->
+  <path d="M 60 185 Q 38 200 35 225 Q 38 235 48 240" stroke="#1E3A8A" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <!-- Left cuff -->
+  <rect x="30" y="232" width="12" height="7" rx="2" fill="white"/>
+  <!-- Left hand -->
+  <circle cx="42" cy="242" r="7" fill="#FDBF60"/>
+
+  <!-- SWORD at belt -->
+  <line x1="55" y1="248" x2="40" y2="280" stroke="#D1D5DB" stroke-width="3"/>
+  <line x1="55" y1="248" x2="40" y2="280" stroke="#9CA3AF" stroke-width="2"/>
+  <!-- Sword guard -->
+  <ellipse cx="55" cy="248" rx="8" ry="3" fill="#FBBF24"/>
+  <!-- Sword handle -->
+  <rect x="53" y="242" width="4" height="8" rx="1" fill="#78350F"/>
+  <circle cx="55" cy="242" r="2" fill="#FBBF24"/>
+
+  <!-- ===== FLOATING GOLD COINS ===== -->
+  <g>
+    <circle cx="25" cy="170" r="14" fill="#FBBF24" stroke="#D97706" stroke-width="2"/>
+    <text x="25" y="176" text-anchor="middle" font-size="16" font-weight="bold" fill="#92400E">₪</text>
+  </g>
+  <g>
+    <circle cx="15" cy="200" r="10" fill="#FBBF24" stroke="#D97706" stroke-width="1.5" opacity="0.8"/>
+    <text x="15" y="205" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400E">₪</text>
+  </g>
+  <g>
+    <circle cx="380" cy="175" r="12" fill="#FBBF24" stroke="#D97706" stroke-width="2"/>
+    <text x="380" y="180" text-anchor="middle" font-size="13" font-weight="bold" fill="#92400E">₪</text>
+  </g>
+
+  <!-- Sparkles -->
+  <text x="35" cy="155" font-size="14" fill="#FBBF24">&#10022;</text>
+  <text x="170" cy="85" font-size="10" fill="#FDE68A" opacity="0.7">&#10022;</text>
+  <text x="375" cy="160" font-size="12" fill="#FBBF24" opacity="0.8">&#10022;</text>
+
+  <!-- Birds -->
+  <path d="M 350 50 Q 355 44 360 50" stroke="#78350F" stroke-width="1.5" fill="none" opacity="0.4"/>
+  <path d="M 365 42 Q 369 37 373 42" stroke="#78350F" stroke-width="1.5" fill="none" opacity="0.3"/>
+  <path d="M 340 60 Q 344 55 348 60" stroke="#78350F" stroke-width="1" fill="none" opacity="0.3"/>
+</svg>
