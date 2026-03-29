@@ -198,7 +198,9 @@
     "taxLink": "Tax Authority",
     "taxLinkDesc": "Tax assessments and refunds",
     "boiLink": "Bank of Israel - Rates",
-    "boiLinkDesc": "Current mortgage rates"
+    "boiLinkDesc": "Current mortgage rates",
+    "banksTitle": "Banks - Mortgage Reports",
+    "banksDesc": "Download settlement balance reports"
   },
   "pension": {
     "title": "Your Pension",

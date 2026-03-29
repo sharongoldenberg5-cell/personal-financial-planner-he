@@ -464,37 +464,67 @@ export default function UploadPage() {
       </div>
 
       {/* External services links */}
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <a href="https://www.har-pe.org.il/" target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
-          <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
-            <Shield size={20} className="text-blue-600" />
+      <div className="mt-4 space-y-3">
+        {/* Main services */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <a href="https://www.har-pe.org.il/" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
+            <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
+              <Shield size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">{t('upload.mislakaLink')}</p>
+              <p className="text-[10px] text-text-light">{t('upload.mislakaLinkDesc')}</p>
+            </div>
+          </a>
+          <a href="https://www.misim.gov.il/shmishomts/frmHomePage.aspx" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
+            <div className="bg-green-100 p-2 rounded-lg flex-shrink-0">
+              <Wallet size={20} className="text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">{t('upload.taxLink')}</p>
+              <p className="text-[10px] text-text-light">{t('upload.taxLinkDesc')}</p>
+            </div>
+          </a>
+          <a href="https://www.boi.org.il/information/interestrates/mortgage/" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
+            <div className="bg-orange-100 p-2 rounded-lg flex-shrink-0">
+              <Building size={20} className="text-orange-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">{t('upload.boiLink')}</p>
+              <p className="text-[10px] text-text-light">{t('upload.boiLinkDesc')}</p>
+            </div>
+          </a>
+        </div>
+
+        {/* Banks - mortgage settlement reports */}
+        <details className="bg-surface border border-border rounded-xl">
+          <summary className="p-3 cursor-pointer hover:bg-background/50 transition-colors flex items-center gap-2">
+            <Building size={18} className="text-primary" />
+            <span className="text-sm font-medium">{t('upload.banksTitle')}</span>
+            <span className="text-[10px] text-text-light">({t('upload.banksDesc')})</span>
+          </summary>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3 pt-0">
+            {[
+              { name: 'בנק הפועלים', url: 'https://www.bankhapoalim.co.il/' },
+              { name: 'בנק לאומי', url: 'https://www.leumi.co.il/' },
+              { name: 'בנק דיסקונט', url: 'https://www.discountbank.co.il/' },
+              { name: 'מזרחי טפחות', url: 'https://www.mizrahi-tefahot.co.il/' },
+              { name: 'הבינלאומי (FIBI)', url: 'https://www.fibi.co.il/' },
+              { name: 'בנק ירושלים', url: 'https://www.bankjerusalem.co.il/' },
+              { name: 'ONE ZERO', url: 'https://www.onezerobank.com/' },
+              { name: 'בנק מסד', url: 'https://www.bankmassad.co.il/' },
+            ].map(bank => (
+              <a key={bank.name} href={bank.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 p-2 bg-background rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm">
+                <Building size={14} className="text-text-light flex-shrink-0" />
+                {bank.name}
+              </a>
+            ))}
           </div>
-          <div>
-            <p className="text-sm font-medium">{t('upload.mislakaLink')}</p>
-            <p className="text-[10px] text-text-light">{t('upload.mislakaLinkDesc')}</p>
-          </div>
-        </a>
-        <a href="https://www.misim.gov.il/shmishomts/frmHomePage.aspx" target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
-          <div className="bg-green-100 p-2 rounded-lg flex-shrink-0">
-            <Wallet size={20} className="text-green-600" />
-          </div>
-          <div>
-            <p className="text-sm font-medium">{t('upload.taxLink')}</p>
-            <p className="text-[10px] text-text-light">{t('upload.taxLinkDesc')}</p>
-          </div>
-        </a>
-        <a href="https://www.boi.org.il/information/interestrates/mortgage/" target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
-          <div className="bg-orange-100 p-2 rounded-lg flex-shrink-0">
-            <Building size={20} className="text-orange-600" />
-          </div>
-          <div>
-            <p className="text-sm font-medium">{t('upload.boiLink')}</p>
-            <p className="text-[10px] text-text-light">{t('upload.boiLinkDesc')}</p>
-          </div>
-        </a>
+        </details>
       </div>
 
       {/* Processing indicator */}
