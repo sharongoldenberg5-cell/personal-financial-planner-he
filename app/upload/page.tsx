@@ -466,8 +466,8 @@ export default function UploadPage() {
       {/* External services links */}
       <div className="mt-4 space-y-3">
         {/* Main services */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <a href="https://www.har-pe.org.il/" target="_blank" rel="noopener noreferrer"
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <a href="https://har-pe.org.il/login/" target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
             <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
               <Shield size={20} className="text-blue-600" />
@@ -475,16 +475,6 @@ export default function UploadPage() {
             <div>
               <p className="text-sm font-medium">{t('upload.mislakaLink')}</p>
               <p className="text-[10px] text-text-light">{t('upload.mislakaLinkDesc')}</p>
-            </div>
-          </a>
-          <a href="https://www.misim.gov.il/shmishomts/frmHomePage.aspx" target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
-            <div className="bg-green-100 p-2 rounded-lg flex-shrink-0">
-              <Wallet size={20} className="text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">{t('upload.taxLink')}</p>
-              <p className="text-[10px] text-text-light">{t('upload.taxLinkDesc')}</p>
             </div>
           </a>
           <a href="https://www.boi.org.il/information/interestrates/mortgage/" target="_blank" rel="noopener noreferrer"
