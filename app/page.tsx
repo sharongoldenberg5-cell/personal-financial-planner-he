@@ -33,6 +33,52 @@ export default function DashboardPage() {
   if (!state) return null;
 
   const Arrow = locale === 'he' ? ArrowLeft : ArrowRight;
+
+  // Check if new user (no profile)
+  const isNewUser = !state.profile;
+
+  if (isNewUser) {
+    return (
+      <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
+        <img src="/captain.png" alt="Captain" className="w-40 h-auto mb-6" />
+        <h1 className="text-3xl font-bold text-primary mb-2">{t('welcome.title')}</h1>
+        <p className="text-lg text-text-light mb-8">{t('welcome.subtitle')}</p>
+
+        <div className="space-y-4 w-full max-w-md">
+          <Link href="/profile"
+            className="flex items-center gap-3 p-4 bg-primary text-white rounded-xl hover:bg-primary-dark transition-colors">
+            <div className="bg-white/20 p-2 rounded-lg"><User size={24} /></div>
+            <div className="text-start">
+              <p className="font-semibold">{t('welcome.step1')}</p>
+              <p className="text-sm opacity-80">{t('welcome.step1desc')}</p>
+            </div>
+            <Arrow size={20} className="ms-auto" />
+          </Link>
+
+          <Link href="/upload"
+            className="flex items-center gap-3 p-4 bg-surface border border-border rounded-xl hover:bg-background transition-colors text-text">
+            <div className="bg-primary/10 p-2 rounded-lg"><Upload size={24} className="text-primary" /></div>
+            <div className="text-start">
+              <p className="font-semibold">{t('welcome.step2')}</p>
+              <p className="text-sm text-text-light">{t('welcome.step2desc')}</p>
+            </div>
+            <Arrow size={20} className="ms-auto text-text-light" />
+          </Link>
+
+          <Link href="/goals"
+            className="flex items-center gap-3 p-4 bg-surface border border-border rounded-xl hover:bg-background transition-colors text-text">
+            <div className="bg-primary/10 p-2 rounded-lg"><Target size={24} className="text-primary" /></div>
+            <div className="text-start">
+              <p className="font-semibold">{t('welcome.step3')}</p>
+              <p className="text-sm text-text-light">{t('welcome.step3desc')}</p>
+            </div>
+            <Arrow size={20} className="ms-auto text-text-light" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const netWorth = calculateNetWorth();
   const totalLiabilities = calculateTotalLiabilities();
   const profile = state.profile;

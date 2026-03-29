@@ -5,6 +5,16 @@
     "disclaimer": "Disclaimer",
     "disclaimerFull": "The information on this site is for general presentation purposes only and does not constitute an offer and/or recommendation to invest or a substitute for investment advice, tax advice, legal advice, or pension advice. The company, including its directors, employees, advisors, other related companies, and those acting on its behalf (hereinafter: \"the Company\") are not licensed under the Regulation of Investment Advice, Investment Marketing and Investment Portfolio Management Law, 5755-1985, and any promotional information provided and any information to be provided regarding an investment opportunity shall not constitute investment advice, investment marketing, pension advice, or pension marketing as defined by law."
   },
+  "welcome": {
+    "title": "Welcome to Financial Captain",
+    "subtitle": "Let's navigate your financial journey together",
+    "step1": "Fill in your profile",
+    "step1desc": "Personal details, income and family",
+    "step2": "Upload financial files",
+    "step2desc": "Mislaka, mortgage reports, statements",
+    "step3": "Set your goals",
+    "step3desc": "Retirement, savings and financial planning"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "profile": "Profile",
