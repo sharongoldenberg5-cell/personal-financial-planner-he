@@ -646,65 +646,91 @@ function parseMortgageReportHapoalim(lines: string[]): MortgageReport {
     }
   }
 
-  // Try to extract interest rates and types from pages 2-3
-  // Pattern: "שיעור ריבית מתואמת" or "ריבית" followed by percentage
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  // Extract end dates, interest types, and rates from all pages
+  // Hapoalim page 2-3 structure: columns per sub-loan component
 
-    // Interest type detection
-    if (line.includes('משתנה') && !line.includes('ביאורים')) {
-      // Find which sub-loan this belongs to
-      for (const sl of subLoans) {
-        if (sl.interestType === 'לא ידוע') {
-          if (line.includes('צמוד') || line.includes('הצמדה')) {
-            sl.interestType = 'משתנה צמודה';
-          } else {
-            sl.interestType = 'משתנה לא צמודה';
-          }
-          break;
-        }
-      }
+  // 1. End dates - "מועד צפוי לתשלום" line contains dates for each component
+  const allDates: string[] = [];
+  for (const line of lines) {
+    if (line.includes('מועד צפוי') || line.includes('תאריך סילוק')) {
+      const dates = line.match(/(\d{2}\/\d{2}\/\d{4})/g);
+      if (dates) allDates.push(...dates);
     }
-    if (line.includes('קבועה') && !line.includes('ביאורים') && !line.includes('שיטה')) {
-      for (const sl of subLoans) {
-        if (sl.interestType === 'לא ידוע') {
-          if (line.includes('צמוד')) {
-            sl.interestType = 'קבועה צמודה';
-          } else {
-            sl.interestType = 'קבועה לא צמודה';
-          }
-          break;
-        }
-      }
-    }
-    if (line.includes('פריים')) {
-      for (const sl of subLoans) {
-        if (sl.interestType === 'לא ידוע') {
-          sl.interestType = 'פריים';
-          break;
-        }
-      }
-    }
+  }
+  // Assign end dates - filter out past dates, take unique future dates
+  const futureDates = [...new Set(allDates)].filter(d => {
+    const parts = d.split('/');
+    const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+    return date > new Date();
+  });
+  for (let j = 0; j < futureDates.length && j < subLoans.length; j++) {
+    subLoans[j].endDate = futureDates[j];
+  }
 
-    // End date: "מועד צפוי לתשלום אחרון"
-    const endDateMatch = line.match(/(\d{2}\/\d{2}\/\d{4})/g);
-    if (line.includes('מועד צפוי') && endDateMatch) {
-      for (let j = 0; j < endDateMatch.length && j < subLoans.length; j++) {
-        if (!subLoans[j].endDate) subLoans[j].endDate = endDateMatch[j];
-      }
-    }
+  // 2. Interest type detection from all text
+  // Key indicators:
+  // "מדד / שער בסיס" or "הצמדת" = צמודה
+  // "מועד שינוי הריבית" = משתנה (rate changes periodically)
+  // No "שינוי" = קבועה
+  // "פריים" or "P" = פריים
+  const hasIndex = fullText.includes('מדד') && (fullText.includes('שער בסיס') || fullText.includes('הצמדת'));
+  const hasRateChange = fullText.includes('שינוי הריבית') || fullText.includes('שינוי ריבית');
 
-    // Interest rate from "ריבית מתואמת" or "שיעור ריבית"
-    const rateMatch = line.match(/([\d.]+)\s*%/g);
-    // Skip if it's a general explanation line
-    if (rateMatch && !line.includes('ביאורים') && !line.includes('עמלה') && line.includes('ריבית')) {
-      for (const rm of rateMatch) {
-        const rate = parseFloat(rm);
-        if (rate > 0 && rate < 15) {
-          for (const sl of subLoans) {
-            if (sl.interestRate === 0) {
-              sl.interestRate = rate;
-              break;
+  // Detect interest types and rates from all text (pages 2-3)
+  // In Hapoalim, pages 2-3 describe components per loan
+  // We use global indicators since OCR makes it hard to match per-loan
+
+  // Check global text for interest type indicators
+  const hasVariableKeyword = fullText.includes('משתנה') && !fullText.includes('ביאורים');
+  const hasFixedKeyword = fullText.includes('קבועה') && !fullText.includes('שיטה');
+  const hasPrimeKeyword = fullText.includes('פריים');
+
+  // Group sub-loans by their characteristics
+  // Loan 330 has "הצמדת קרן" > 0 on page 1 → it's צמודה
+  for (const sl of subLoans) {
+    // If the original data had indexation (הצמדת קרן > 0), it's linked to index
+    const isIndexed = sl.principalBalance > sl.originalAmount * 1.01; // More than 1% difference = has indexation
+
+    if (hasPrimeKeyword) {
+      // Check if this specific loan is prime
+      sl.interestType = 'פריים';
+    } else if (isIndexed || (hasIndex && !hasFixedKeyword)) {
+      sl.interestType = hasRateChange ? 'משתנה צמודה' : 'קבועה צמודה';
+    } else if (hasVariableKeyword) {
+      sl.interestType = hasIndex ? 'משתנה צמודה' : 'משתנה לא צמודה';
+    } else {
+      sl.interestType = 'קבועה לא צמודה';
+    }
+  }
+
+  // Special handling: if one loan has הצמדת קרן > 0 and others don't, they're different types
+  const indexedLoans = subLoans.filter(sl => sl.principalBalance > sl.originalAmount * 1.01);
+  const nonIndexedLoans = subLoans.filter(sl => sl.principalBalance <= sl.originalAmount * 1.01);
+  if (indexedLoans.length > 0 && nonIndexedLoans.length > 0) {
+    // Mixed: indexed loans are צמודה, non-indexed are לא צמודה
+    for (const sl of indexedLoans) {
+      sl.interestType = hasRateChange ? 'משתנה צמודה' : 'קבועה צמודה';
+    }
+    for (const sl of nonIndexedLoans) {
+      sl.interestType = hasRateChange ? 'משתנה לא צמודה' : 'קבועה לא צמודה';
+    }
+  }
+
+  // Try to extract interest rate from OCR text
+  // Look for patterns like "ריבית" followed by number or "2192" (garbled % rate)
+  for (const line of lines) {
+    if ((line.includes('ריבית') && line.includes('מתואמת')) || line.includes('שיעור ריבית')) {
+      const rateMatches = line.match(/([\d.]+)/g);
+      if (rateMatches) {
+        for (const rm of rateMatches) {
+          const rate = parseFloat(rm);
+          // Reasonable mortgage rate: 1-10%
+          if (rate > 1 && rate < 10) {
+            for (const sl of subLoans) {
+              if (sl.interestRate === 0) {
+                sl.interestRate = rate;
+                break;
+              }
             }
           }
         }
@@ -1306,8 +1332,8 @@ async function ocrPdf(buffer: ArrayBuffer): Promise<string[]> {
   const numPages = doc.countPages();
   const allLines: string[] = [];
 
-  // Only OCR first 2 pages - that's where summary data is
-  const maxPages = Math.min(numPages, 2);
+  // OCR first 3 pages - page 1 has summary, pages 2-3 have rate details
+  const maxPages = Math.min(numPages, 3);
 
   for (let i = 0; i < maxPages; i++) {
     const page = doc.loadPage(i);
@@ -1319,9 +1345,10 @@ async function ocrPdf(buffer: ArrayBuffer): Promise<string[]> {
     const pageLines = text.split('\n').filter(l => l.trim().length > 0);
     allLines.push(...pageLines);
 
-    // Early exit if we found enough data on page 1
+    // Early exit only if NOT Hapoalim (Hapoalim needs pages 2-3 for rate details)
     const joined = allLines.join(' ');
-    if (joined.includes('סילוק') && joined.match(/[\d,]+\.\d{2}/g)?.length) {
+    const isLikelyHapoalim = joined.includes('הפועלים') || joined.includes('משכנתאות');
+    if (!isLikelyHapoalim && joined.includes('סילוק') && joined.match(/[\d,]+\.\d{2}/g)?.length && i >= 1) {
       break;
     }
   }
