@@ -511,15 +511,35 @@ export default function QuizPage() {
             <p className="text-sm text-text-light mb-4">העלה את דוח היתרה לסילוק מהבנק וקבל ניתוח מיידי - האם אתה משלם יותר מדי?</p>
 
             {uploadedFiles.length === 0 ? (
-              <label className="flex items-center gap-4 p-5 bg-white rounded-xl border-2 border-dashed border-blue-300 hover:border-primary cursor-pointer transition-colors">
-                <Building size={32} className="text-primary flex-shrink-0" />
-                <div>
-                  <span className="text-sm font-bold block">העלה דוח יתרה לסילוק</span>
-                  <span className="text-xs text-text-light">PDF שהורדת מאתר הבנק</span>
+              <>
+                <label className="flex items-center gap-4 p-5 bg-white rounded-xl border-2 border-dashed border-blue-300 hover:border-primary cursor-pointer transition-colors mb-3">
+                  <Building size={32} className="text-primary flex-shrink-0" />
+                  <div>
+                    <span className="text-sm font-bold block">העלה דוח יתרה לסילוק</span>
+                    <span className="text-xs text-text-light">PDF שהורדת מאתר הבנק</span>
+                  </div>
+                  <input type="file" accept=".pdf,.zip" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, 'mortgage'); }} />
+                </label>
+                <p className="text-xs text-text-light mb-2">אין לך את הדוח? היכנס לאתר הבנק והורד:</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { name: 'הפועלים', url: 'https://www.bankhapoalim.co.il/' },
+                    { name: 'לאומי', url: 'https://www.leumi.co.il/' },
+                    { name: 'דיסקונט', url: 'https://www.discountbank.co.il/' },
+                    { name: 'מזרחי טפחות', url: 'https://www.mizrahi-tefahot.co.il/' },
+                    { name: 'הבינלאומי', url: 'https://www.fibi.co.il/' },
+                    { name: 'ירושלים', url: 'https://www.bankjerusalem.co.il/' },
+                  ].map(bank => (
+                    <a key={bank.name} href={bank.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1 p-2 bg-white rounded-lg border border-gray-200 hover:border-primary hover:text-primary transition-colors text-xs">
+                      <Building size={12} />
+                      {bank.name}
+                    </a>
+                  ))}
                 </div>
-                <input type="file" accept=".pdf,.zip" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, 'mortgage'); }} />
-              </label>
+              </>
+
             ) : (
               <div className="space-y-3">
                 {uploadedFiles.map((f, i) => (
