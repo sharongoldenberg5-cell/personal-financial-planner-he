@@ -657,14 +657,25 @@ function parseMortgageReportHapoalim(lines: string[]): MortgageReport {
       if (dates) allDates.push(...dates);
     }
   }
-  // Assign end dates - filter out past dates, take unique future dates
+  // Assign end dates - filter out past dates, sort by date
   const futureDates = [...new Set(allDates)].filter(d => {
     const parts = d.split('/');
     const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
     return date > new Date();
+  }).sort((a, b) => {
+    const pa = a.split('/'); const pb = b.split('/');
+    return new Date(parseInt(pa[2]), parseInt(pa[1])-1, parseInt(pa[0])).getTime() -
+           new Date(parseInt(pb[2]), parseInt(pb[1])-1, parseInt(pb[0])).getTime();
   });
-  for (let j = 0; j < futureDates.length && j < subLoans.length; j++) {
-    subLoans[j].endDate = futureDates[j];
+  // Assign to sub-loans - for each loan, find the most likely end date
+  // If more dates than loans, assign longest dates to indexed loans (they tend to be longer)
+  for (let j = 0; j < subLoans.length; j++) {
+    if (j < futureDates.length) {
+      subLoans[j].endDate = futureDates[j];
+    } else if (futureDates.length > 0) {
+      // Use the latest date as fallback
+      subLoans[j].endDate = futureDates[futureDates.length - 1];
+    }
   }
 
   // 2. Interest type detection from all text
@@ -676,43 +687,41 @@ function parseMortgageReportHapoalim(lines: string[]): MortgageReport {
   const hasIndex = fullText.includes('מדד') && (fullText.includes('שער בסיס') || fullText.includes('הצמדת'));
   const hasRateChange = fullText.includes('שינוי הריבית') || fullText.includes('שינוי ריבית');
 
-  // Detect interest types and rates from all text (pages 2-3)
-  // In Hapoalim, pages 2-3 describe components per loan
-  // We use global indicators since OCR makes it hard to match per-loan
+  // Detect interest types from page text and loan characteristics
+  // Key indicators from Hapoalim:
+  // - P (פריים) = ריבית יסודית נקבעת ע"י הבנק
+  // - ₪ = ריבית בסיס לפי אג"ח צמודות למדד
+  // - "מועד שינוי הריבית" = משתנה
+  // - "מדד / שער בסיס" = צמודה למדד
+  // - הצמדת קרן > 0 on page 1 = צמודה
 
-  // Check global text for interest type indicators
-  const hasVariableKeyword = fullText.includes('משתנה') && !fullText.includes('ביאורים');
-  const hasFixedKeyword = fullText.includes('קבועה') && !fullText.includes('שיטה');
-  const hasPrimeKeyword = fullText.includes('פריים');
-
-  // Group sub-loans by their characteristics
-  // Loan 330 has "הצמדת קרן" > 0 on page 1 → it's צמודה
   for (const sl of subLoans) {
-    // If the original data had indexation (הצמדת קרן > 0), it's linked to index
-    const isIndexed = sl.principalBalance > sl.originalAmount * 1.01; // More than 1% difference = has indexation
+    const isIndexed = sl.principalBalance > sl.originalAmount * 1.01;
 
-    if (hasPrimeKeyword) {
-      // Check if this specific loan is prime
+    // Find loan-specific section in pages 2-3 text
+    let hasLoanIndex = false;
+    let hasLoanRateChange = false;
+    let hasLoanPrime = false;
+    const loanShort = sl.loanNumber.split('/').slice(0, 3).join('/'); // e.g. 62/58/381324
+
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes(loanShort)) {
+        // Look at surrounding 15 lines for this loan's details
+        const section = lines.slice(i, Math.min(i + 15, lines.length)).join(' ');
+        if (section.includes('מדד') || section.includes('שער בסיס')) hasLoanIndex = true;
+        if (section.includes('שינוי') && section.includes('ריבית')) hasLoanRateChange = true;
+        if (section.includes('פריים') || section.match(/\bP\b/)) hasLoanPrime = true;
+      }
+    }
+
+    if (hasLoanPrime) {
       sl.interestType = 'פריים';
-    } else if (isIndexed || (hasIndex && !hasFixedKeyword)) {
-      sl.interestType = hasRateChange ? 'משתנה צמודה' : 'קבועה צמודה';
-    } else if (hasVariableKeyword) {
-      sl.interestType = hasIndex ? 'משתנה צמודה' : 'משתנה לא צמודה';
+    } else if (isIndexed || hasLoanIndex) {
+      sl.interestType = hasLoanRateChange ? 'משתנה צמודה' : 'קבועה צמודה';
+    } else if (hasLoanRateChange) {
+      sl.interestType = 'משתנה לא צמודה';
     } else {
       sl.interestType = 'קבועה לא צמודה';
-    }
-  }
-
-  // Special handling: if one loan has הצמדת קרן > 0 and others don't, they're different types
-  const indexedLoans = subLoans.filter(sl => sl.principalBalance > sl.originalAmount * 1.01);
-  const nonIndexedLoans = subLoans.filter(sl => sl.principalBalance <= sl.originalAmount * 1.01);
-  if (indexedLoans.length > 0 && nonIndexedLoans.length > 0) {
-    // Mixed: indexed loans are צמודה, non-indexed are לא צמודה
-    for (const sl of indexedLoans) {
-      sl.interestType = hasRateChange ? 'משתנה צמודה' : 'קבועה צמודה';
-    }
-    for (const sl of nonIndexedLoans) {
-      sl.interestType = hasRateChange ? 'משתנה לא צמודה' : 'קבועה לא צמודה';
     }
   }
 
@@ -737,7 +746,8 @@ function parseMortgageReportHapoalim(lines: string[]): MortgageReport {
   }
 
   // FALLBACK: Calculate interest rate from PMT data (reverse PMT formula)
-  // If we have balance, monthly payment, and end date - we can calculate the rate
+  // For indexed loans: PMT is based on original principal, not current balance
+  // For non-indexed: PMT is based on current balance
   for (const sl of subLoans) {
     if (sl.interestRate === 0 && sl.monthlyPayment > 0 && sl.currentBalance > 0 && sl.endDate) {
       const parts = sl.endDate.split('/');
@@ -751,24 +761,61 @@ function parseMortgageReportHapoalim(lines: string[]): MortgageReport {
         const PMT = sl.monthlyPayment;
         const n = remainingMonths;
 
-        // Use current balance for rate calculation (includes indexation if any)
-
-        // Binary search for rate (more robust than Newton's method)
-        let lo = 0.0001; // 0.12% annual
-        let hi = 0.015;  // 18% annual
-        let r = 0;
-        for (let iter = 0; iter < 100; iter++) {
-          r = (lo + hi) / 2;
-          const rn = Math.pow(1 + r, n);
-          const calcPMT = P * r * rn / (rn - 1);
-          if (Math.abs(calcPMT - PMT) < 1) break; // Close enough (within 1 ₪)
-          if (calcPMT > PMT) hi = r;
-          else lo = r;
+        // Try multiple principal bases for rate calculation
+        // 1. Current balance (for non-indexed)
+        // 2. Original amount (for indexed - PMT based on original)
+        // 3. Sum of components from page 2-3 (Hapoalim splits into 201/202)
+        const isIndexed = sl.interestType.includes('צמודה');
+        const candidates = [P]; // currentBalance
+        if (sl.originalAmount > 0 && sl.originalAmount !== P) candidates.push(sl.originalAmount);
+        // For indexed Hapoalim loans: the PMT may be based on original loan amount
+        // which can be different from current balance. Try reasonable multiples.
+        if (isIndexed) {
+          // Try the original amount (before indexation was added)
+          // Also try finding component sums from "סכום הלוואה" lines
+          for (const line of lines) {
+            if (line.includes('סכום הלוואה') || line.includes('סכום מקורי')) {
+              const amounts = line.match(/[\d,]+\.\d{2}/g);
+              if (amounts) {
+                const sum = amounts.reduce((s, a) => s + parseDecimal(a), 0);
+                if (sum > 10000 && sum < P * 1.5 && sum > P * 0.5) {
+                  if (!candidates.includes(sum)) candidates.push(sum);
+                }
+                // Also try individual amounts
+                for (const a of amounts) {
+                  const val = parseDecimal(a);
+                  if (val > 10000 && !candidates.includes(val)) candidates.push(val);
+                }
+              }
+            }
+          }
         }
 
-        const annualRate = Math.round(r * 12 * 10000) / 100; // Convert to annual %
-        if (annualRate > 0.5 && annualRate < 15) {
-          sl.interestRate = annualRate;
+        let bestRate = 0;
+        let bestConverged = false;
+        for (const basis of candidates) {
+          let lo = 0.00001;
+          let hi = 0.015;
+          let r = 0;
+          let conv = false;
+          for (let iter = 0; iter < 100; iter++) {
+            r = (lo + hi) / 2;
+            const rn = Math.pow(1 + r, n);
+            const calcPMT = basis * r * rn / (rn - 1);
+            if (Math.abs(calcPMT - PMT) < 1) { conv = true; break; }
+            if (calcPMT > PMT) hi = r;
+            else lo = r;
+          }
+          const rate = Math.round(r * 12 * 10000) / 100;
+          if (conv && rate > 0.1 && rate < 15) {
+            bestRate = rate;
+            bestConverged = true;
+            break; // Use first converging result
+          }
+        }
+
+        if (bestConverged && bestRate > 0.1 && bestRate < 15) {
+          sl.interestRate = bestRate;
         }
       }
     }
