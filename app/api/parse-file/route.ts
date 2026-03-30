@@ -309,9 +309,12 @@ async function parsePdfFile(buffer: ArrayBuffer, fileName: string): Promise<Pars
     const isFIBI = fullText.includes('משנה סכום') && fullText.includes('יתרת') && fullText.includes('הלוואה');
     const isMishkan = (fullText.includes('נתונים לסילוק') && fullText.includes('חלק') && fullText.includes('יתרת הקרן'))
       || (fullText.includes('טפחות') && fullText.includes('סילוק'));
-    const isMortgageReport = isFIBI || isMishkan;
+    const isHapoalim = fullText.includes('הפועלים') && fullText.includes('משכנתאות') && fullText.includes('יתרה לסילוק');
+    const isMortgageReport = isFIBI || isMishkan || isHapoalim;
     if (isMortgageReport) {
-      const mortgage = isFIBI ? parseMortgageReportFIBI(allLines) : parseMortgageReportMishkan(allLines);
+      const mortgage = isFIBI ? parseMortgageReportFIBI(allLines)
+        : isHapoalim ? parseMortgageReportHapoalim(allLines)
+        : parseMortgageReportMishkan(allLines);
       // Create records from sub-loans for the table view
       const records: FinancialRecord[] = mortgage.subLoans.map(sl => ({
         id: generateId(),
@@ -528,6 +531,215 @@ function parseMortgageReportFIBI(lines: string[]): MortgageReport {
     totalInterest,
     subLoans,
     bank,
+  };
+}
+
+// ============ Israeli Mortgage Report Parser - Hapoalim ============
+function parseMortgageReportHapoalim(lines: string[]): MortgageReport {
+  const fullText = lines.join('\n');
+  const subLoans: MortgageSubLoan[] = [];
+
+  // Extract borrower name - "לכבוד" line followed by name
+  let borrowerName = '';
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('לכבוד')) {
+      // Name is usually on the same line after "לכבוד" or the next line
+      const afterLkavod = lines[i].replace(/.*לכבוד/, '').trim();
+      if (afterLkavod.match(/[א-ת]{2,}/)) {
+        // Extract date first then name
+        const namePart = afterLkavod.replace(/תאריך.*/, '').trim();
+        if (!namePart) {
+          borrowerName = lines[i + 1]?.trim() || '';
+        }
+      } else {
+        borrowerName = lines[i + 1]?.trim() || '';
+      }
+      break;
+    }
+  }
+  // Try to find name near "מספר זהות"
+  for (const line of lines.slice(0, 10)) {
+    const nameMatch = line.match(/([א-ת]+\s+[א-ת]+)\s+מספר זהות/);
+    if (nameMatch) { borrowerName = nameMatch[1]; break; }
+  }
+
+  // Extract report date
+  let reportDate = '';
+  for (const line of lines.slice(0, 10)) {
+    const dateMatch = line.match(/תאריך[:\s]*(\d{2}\/\d{2}\/\d{4})/);
+    if (dateMatch) { reportDate = dateMatch[1]; break; }
+  }
+
+  // Hapoalim format: table with columns on page 1
+  // מספר הלוואה | קרן | הצמדת קרן | פיגור/עודף | ריבית | ריבית נדחית | נלווים | עמלת פירעון | יתרה לסילוק | תשלום חודשי
+  // Pattern: 62/XX/XXXXXX/XXX followed by numbers
+  const loanPattern = /(\d{2}\/\d{2}\/\d{6,}\/\d{3})\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)/g;
+
+  let match;
+  let loanNumber = '';
+  const fullJoined = lines.join(' ');
+
+  while ((match = loanPattern.exec(fullJoined)) !== null) {
+    const num = match[1];
+    if (!loanNumber) loanNumber = num;
+    const principal = parseDecimal(match[2]);
+    const indexation = parseDecimal(match[3]);
+    const balance = parseDecimal(match[9]);
+    const monthlyPayment = parseDecimal(match[10]);
+
+    if (balance > 0) {
+      subLoans.push({
+        subLoanNumber: num.split('/').pop() || '',
+        loanNumber: num,
+        originalAmount: principal,
+        currentBalance: balance,
+        principalBalance: principal + indexation,
+        interestBalance: parseDecimal(match[5]),
+        interestRate: 0, // Will be extracted from page 2-3
+        interestType: 'לא ידוע',
+        monthlyPayment,
+        repaymentMethod: 'שפיצר',
+        startDate: '',
+        endDate: '',
+        purpose: 'הלוואה לדיור',
+      });
+    }
+  }
+
+  // If regex didn't match, try line-by-line approach
+  if (subLoans.length === 0) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Look for loan number pattern: 62/XX/XXXXXX/XXX
+      const loanMatch = line.match(/(\d{2}\/\d{2,}\/\d{6}\/\d{3})/);
+      if (loanMatch) {
+        const num = loanMatch[1];
+        if (!loanNumber) loanNumber = num;
+        // Find amounts on same line
+        const amounts = line.match(/[\d,]+\.\d{2}/g);
+        if (amounts && amounts.length >= 2) {
+          const nums = amounts.map(a => parseDecimal(a));
+          // Last two numbers are usually balance and monthly payment
+          const balance = nums[nums.length - 2] || 0;
+          const monthly = nums[nums.length - 1] || 0;
+          const principal = nums[0] || 0;
+
+          if (balance > 1000) {
+            subLoans.push({
+              subLoanNumber: num.split('/').pop() || String(subLoans.length + 1).padStart(2, '0'),
+              loanNumber: num,
+              originalAmount: principal,
+              currentBalance: balance,
+              principalBalance: principal,
+              interestBalance: 0,
+              interestRate: 0,
+              interestType: 'לא ידוע',
+              monthlyPayment: monthly,
+              repaymentMethod: 'שפיצר',
+              startDate: '',
+              endDate: '',
+              purpose: 'הלוואה לדיור',
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Try to extract interest rates and types from pages 2-3
+  // Pattern: "שיעור ריבית מתואמת" or "ריבית" followed by percentage
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Interest type detection
+    if (line.includes('משתנה') && !line.includes('ביאורים')) {
+      // Find which sub-loan this belongs to
+      for (const sl of subLoans) {
+        if (sl.interestType === 'לא ידוע') {
+          if (line.includes('צמוד') || line.includes('הצמדה')) {
+            sl.interestType = 'משתנה צמודה';
+          } else {
+            sl.interestType = 'משתנה לא צמודה';
+          }
+          break;
+        }
+      }
+    }
+    if (line.includes('קבועה') && !line.includes('ביאורים') && !line.includes('שיטה')) {
+      for (const sl of subLoans) {
+        if (sl.interestType === 'לא ידוע') {
+          if (line.includes('צמוד')) {
+            sl.interestType = 'קבועה צמודה';
+          } else {
+            sl.interestType = 'קבועה לא צמודה';
+          }
+          break;
+        }
+      }
+    }
+    if (line.includes('פריים')) {
+      for (const sl of subLoans) {
+        if (sl.interestType === 'לא ידוע') {
+          sl.interestType = 'פריים';
+          break;
+        }
+      }
+    }
+
+    // End date: "מועד צפוי לתשלום אחרון"
+    const endDateMatch = line.match(/(\d{2}\/\d{2}\/\d{4})/g);
+    if (line.includes('מועד צפוי') && endDateMatch) {
+      for (let j = 0; j < endDateMatch.length && j < subLoans.length; j++) {
+        if (!subLoans[j].endDate) subLoans[j].endDate = endDateMatch[j];
+      }
+    }
+
+    // Interest rate from "ריבית מתואמת" or "שיעור ריבית"
+    const rateMatch = line.match(/([\d.]+)\s*%/g);
+    // Skip if it's a general explanation line
+    if (rateMatch && !line.includes('ביאורים') && !line.includes('עמלה') && line.includes('ריבית')) {
+      for (const rm of rateMatch) {
+        const rate = parseFloat(rm);
+        if (rate > 0 && rate < 15) {
+          for (const sl of subLoans) {
+            if (sl.interestRate === 0) {
+              sl.interestRate = rate;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Extract total from "סה"כ" line
+  // In Hapoalim format: columns are: קרן | הצמדת קרן | פיגור | ריבית | ריבית נדחית | נלווים | עמלה | יתרה לסילוק | תשלום חודשי
+  // So "יתרה לסילוק" is the second-to-last number
+  let totalBalance = 0;
+  let totalMonthly = 0;
+  for (const line of lines) {
+    if (line.includes('סה"כ') || line.includes('סהכ')) {
+      const amounts = line.match(/[\d,]+\.\d{2}/g);
+      if (amounts && amounts.length >= 2) {
+        const nums = amounts.map(a => parseDecimal(a));
+        // Second-to-last = total balance, last = total monthly
+        totalBalance = nums[nums.length - 2] || 0;
+        totalMonthly = nums[nums.length - 1] || 0;
+      }
+    }
+  }
+
+  if (totalBalance === 0) totalBalance = subLoans.reduce((s, l) => s + l.currentBalance, 0);
+
+  return {
+    borrowerName,
+    reportDate,
+    loanNumber,
+    totalBalance,
+    totalPrincipal: subLoans.reduce((s, l) => s + l.principalBalance, 0),
+    totalInterest: subLoans.reduce((s, l) => s + l.interestBalance, 0),
+    subLoans,
+    bank: 'בנק הפועלים',
   };
 }
 
