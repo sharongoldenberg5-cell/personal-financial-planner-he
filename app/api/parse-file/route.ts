@@ -716,15 +716,13 @@ function parseMortgageReportHapoalim(lines: string[]): MortgageReport {
     }
   }
 
-  // Try to extract interest rate from OCR text
-  // Look for patterns like "ריבית" followed by number or "2192" (garbled % rate)
+  // Try to extract interest rate from OCR text first
   for (const line of lines) {
     if ((line.includes('ריבית') && line.includes('מתואמת')) || line.includes('שיעור ריבית')) {
       const rateMatches = line.match(/([\d.]+)/g);
       if (rateMatches) {
         for (const rm of rateMatches) {
           const rate = parseFloat(rm);
-          // Reasonable mortgage rate: 1-10%
           if (rate > 1 && rate < 10) {
             for (const sl of subLoans) {
               if (sl.interestRate === 0) {
@@ -733,6 +731,44 @@ function parseMortgageReportHapoalim(lines: string[]): MortgageReport {
               }
             }
           }
+        }
+      }
+    }
+  }
+
+  // FALLBACK: Calculate interest rate from PMT data (reverse PMT formula)
+  // If we have balance, monthly payment, and end date - we can calculate the rate
+  for (const sl of subLoans) {
+    if (sl.interestRate === 0 && sl.monthlyPayment > 0 && sl.currentBalance > 0 && sl.endDate) {
+      const parts = sl.endDate.split('/');
+      if (parts.length === 3) {
+        const endDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        const now = new Date();
+        const remainingMonths = Math.max(12, Math.round((endDate.getTime() - now.getTime()) / (30.44 * 24 * 60 * 60 * 1000)));
+        // Reverse PMT: find r where PMT = P * [r(1+r)^n] / [(1+r)^n - 1]
+        // Use Newton's method approximation
+        const P = sl.currentBalance;
+        const PMT = sl.monthlyPayment;
+        const n = remainingMonths;
+
+        // Use current balance for rate calculation (includes indexation if any)
+
+        // Binary search for rate (more robust than Newton's method)
+        let lo = 0.0001; // 0.12% annual
+        let hi = 0.015;  // 18% annual
+        let r = 0;
+        for (let iter = 0; iter < 100; iter++) {
+          r = (lo + hi) / 2;
+          const rn = Math.pow(1 + r, n);
+          const calcPMT = P * r * rn / (rn - 1);
+          if (Math.abs(calcPMT - PMT) < 1) break; // Close enough (within 1 ₪)
+          if (calcPMT > PMT) hi = r;
+          else lo = r;
+        }
+
+        const annualRate = Math.round(r * 12 * 10000) / 100; // Convert to annual %
+        if (annualRate > 0.5 && annualRate < 15) {
+          sl.interestRate = annualRate;
         }
       }
     }
