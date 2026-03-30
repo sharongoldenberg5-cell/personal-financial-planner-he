@@ -657,11 +657,13 @@ function parseMortgageReportHapoalim(lines: string[]): MortgageReport {
       if (dates) allDates.push(...dates);
     }
   }
-  // Assign end dates - filter out past dates, sort by date
+  // Assign end dates - filter out past dates and unrealistic dates (>30 years)
+  const maxEndYear = new Date().getFullYear() + 30;
   const futureDates = [...new Set(allDates)].filter(d => {
     const parts = d.split('/');
-    const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-    return date > new Date();
+    const year = parseInt(parts[2]);
+    const date = new Date(year, parseInt(parts[1]) - 1, parseInt(parts[0]));
+    return date > new Date() && year <= maxEndYear;
   }).sort((a, b) => {
     const pa = a.split('/'); const pb = b.split('/');
     return new Date(parseInt(pa[2]), parseInt(pa[1])-1, parseInt(pa[0])).getTime() -
