@@ -165,6 +165,32 @@ export interface MislakaReport {
   importDate: string;
 }
 
+// Bank account transactions
+export type AccountType = 'personal' | 'business';
+
+export interface BankTransaction {
+  date: string;
+  code: string;
+  action: string;
+  details: string;
+  reference: string;
+  debit: number;
+  credit: number;
+  balance: number;
+  category: string;
+}
+
+export interface BankAccount {
+  id: string;
+  accountNumber: string;
+  bank: string;
+  type: AccountType;
+  owner: string;
+  period: string;
+  transactions: BankTransaction[];
+  importDate: string;
+}
+
 export type GoalPriority = 'high' | 'medium' | 'low';
 export type GoalStatus = 'active' | 'completed' | 'paused';
 
@@ -228,5 +254,6 @@ export interface AppState {
   retirementGoals: RetirementGoals | null;
   goals: Goal[];
   recommendations: Recommendation[];
+  bankAccounts: BankAccount[];
   uploadedFiles: UploadedFile[];
 }

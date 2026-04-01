@@ -18,6 +18,7 @@ import {
   Globe,
   Menu,
   X,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { key: 'liabilities', href: '/liabilities', icon: CreditCard },
   { key: 'pension', href: '/pension', icon: Shield },
   { key: 'mortgage', href: '/mortgage', icon: Building },
+  { key: 'transactions', href: '/transactions', icon: ArrowLeftRight },
   { key: 'upload', href: '/upload', icon: Upload },
   { key: 'goals', href: '/goals', icon: Target },
   { key: 'recommendations', href: '/recommendations', icon: Lightbulb },

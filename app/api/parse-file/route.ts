@@ -53,6 +53,22 @@ interface ParseResult {
   error?: string;
   mortgageReport?: MortgageReport;
   mislakaData?: MislakaData;
+  bankAccountData?: {
+    accountNumber: string;
+    bank: string;
+    period: string;
+    transactions: {
+      date: string;
+      code: string;
+      action: string;
+      details: string;
+      reference: string;
+      debit: number;
+      credit: number;
+      balance: number;
+      category: string;
+    }[];
+  };
 }
 
 interface MortgageSubLoan {
@@ -201,6 +217,19 @@ function parseExcelFile(buffer: ArrayBuffer, fileName: string): ParseResult {
     const workbook = XLSX.read(buffer, { type: 'array' });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { header: 1 }) as unknown as unknown[][];
+
+    // Detect bank transaction file
+    const firstRows = rawRows.slice(0, 5).map(r => (r || []).join(' '));
+    const isBankTransactions = firstRows.some(r =>
+      r.includes('תנועות בחשבון') || r.includes('תנועות') ||
+      (r.includes('חובה') && r.includes('זכות') && r.includes('יתרה'))
+    );
+
+    if (isBankTransactions) {
+      return parseBankTransactions(rawRows, fileName);
+    }
+
     const rawData = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
     const headers = rawData.length > 0 ? Object.keys(rawData[0]) : [];
     const records = autoMapRecords(rawData, fileName);
@@ -208,6 +237,124 @@ function parseExcelFile(buffer: ArrayBuffer, fileName: string): ParseResult {
   } catch {
     return { records: [], rawData: [], headers: [], fileName, error: 'Failed to parse Excel file' };
   }
+}
+
+// ============ Bank Transactions Parser ============
+function parseBankTransactions(rawRows: unknown[][], fileName: string): ParseResult {
+  // Extract account info from header rows
+  let accountNumber = '';
+  let bank = '';
+  let period = '';
+
+  for (const row of rawRows.slice(0, 5)) {
+    const text = (row || []).join(' ');
+    // Account number: "מספר חשבון  12-712-444000"
+    const accMatch = text.match(/מספר חשבון\s+([\d-]+)/);
+    if (accMatch) accountNumber = accMatch[1];
+    // Period: "לתקופה:  02.03.2026 - 01.04.2026"
+    const periodMatch = text.match(/לתקופה[:\s]+([\d.]+\s*-\s*[\d.]+)/);
+    if (periodMatch) period = periodMatch[1].trim();
+    // Detect bank
+    if (text.includes('הפועלים')) bank = 'בנק הפועלים';
+    else if (text.includes('לאומי')) bank = 'בנק לאומי';
+    else if (text.includes('דיסקונט')) bank = 'בנק דיסקונט';
+    else if (text.includes('טפחות') || text.includes('מזרחי')) bank = 'מזרחי טפחות';
+    else if (text.includes('הבינלאומי')) bank = 'הבינלאומי';
+  }
+
+  // Find header row (contains חובה/זכות/יתרה)
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(10, rawRows.length); i++) {
+    const row = rawRows[i] || [];
+    const text = row.join(' ');
+    if (text.includes('חובה') && text.includes('זכות')) {
+      headerIdx = i;
+      break;
+    }
+  }
+
+  if (headerIdx < 0) {
+    return { records: [], rawData: [], headers: [], fileName, error: 'Could not find transaction headers' };
+  }
+
+  // Category detection based on action/details
+  function categorizeTransaction(action: string, details: string): string {
+    const text = (action + ' ' + details).toLowerCase();
+    if (text.includes('משכורת') || text.includes('שכר')) return 'הכנסה-משכורת';
+    if (text.includes('משכנתא')) return 'דיור-משכנתא';
+    if (text.includes('שכ"ד') || text.includes('שכירות')) return 'דיור-שכירות';
+    if (text.includes('ביטוח') || text.includes('מנורה') || text.includes('הראל') || text.includes('הפניקס')) return 'ביטוח';
+    if (text.includes('גמל') || text.includes('פנסי') || text.includes('מיטב') || text.includes('אלטשולר')) return 'חיסכון-פנסיה';
+    if (text.includes('כאל') || text.includes('ישראכרט') || text.includes('אמריקן') || text.includes('מקס')) return 'כרטיס-אשראי';
+    if (text.includes('חשמל') || text.includes('מים') || text.includes('ארנונה') || text.includes('גז')) return 'חשבונות-בית';
+    if (text.includes('סופר') || text.includes('שופרסל') || text.includes('רמי') || text.includes('מזון')) return 'מזון';
+    if (text.includes('דלק') || text.includes('סונול') || text.includes('פז') || text.includes('דור')) return 'רכב-דלק';
+    if (text.includes('העברה') || text.includes('הפקדה') || text.includes('bit')) return 'העברות';
+    if (text.includes('פקדון') || text.includes('חיסכון')) return 'חיסכון';
+    if (text.includes('מט"ח') || text.includes('סחר')) return 'מט"ח';
+    return 'אחר';
+  }
+
+  // Parse transaction rows
+  const transactions: ParseResult['bankAccountData'] extends undefined ? never : NonNullable<ParseResult['bankAccountData']>['transactions'] = [];
+  const records: FinancialRecord[] = [];
+
+  for (let i = headerIdx + 1; i < rawRows.length; i++) {
+    const row = rawRows[i] || [];
+    if (row.length < 7) continue;
+
+    // Excel date number to string
+    let dateStr = '';
+    if (typeof row[0] === 'number' && (row[0] as number) > 40000) {
+      const d = new Date((row[0] as number - 25569) * 86400 * 1000);
+      dateStr = d.toISOString().split('T')[0];
+    } else if (typeof row[0] === 'string') {
+      dateStr = row[0] as string;
+    }
+    if (!dateStr) continue;
+
+    const action = String(row[2] || '');
+    const details = String(row[3] || '');
+    const debit = parseFloat(String(row[6])) || 0;
+    const credit = parseFloat(String(row[7])) || 0;
+    const balance = parseFloat(String(row[8])) || 0;
+    const category = categorizeTransaction(action, details);
+
+    transactions.push({
+      date: dateStr,
+      code: String(row[1] || ''),
+      action,
+      details,
+      reference: String(row[4] || ''),
+      debit,
+      credit,
+      balance,
+      category,
+    });
+
+    records.push({
+      id: generateId(),
+      date: dateStr,
+      description: `${action} ${details}`.trim(),
+      amount: debit || credit,
+      type: credit > 0 ? 'income' : 'expense',
+      category,
+      source: fileName,
+    });
+  }
+
+  return {
+    records,
+    rawData: transactions.map((t, i) => ({ line: String(i), content: `${t.date} | ${t.action} | ${t.details} | ${t.debit || t.credit}` })),
+    headers: ['date', 'action', 'details', 'amount'],
+    fileName,
+    bankAccountData: {
+      accountNumber,
+      bank: bank || 'לא ידוע',
+      period,
+      transactions,
+    },
+  };
 }
 
 // ============ CSV ============

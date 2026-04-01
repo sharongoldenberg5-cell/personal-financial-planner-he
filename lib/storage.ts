@@ -1,6 +1,6 @@
 'use client';
 
-import type { AppState, UserProfile, Asset, Liability, MortgageReport, MislakaReport, RetirementGoals, PensionData, FinancialRecord, Goal, Recommendation, UploadedFile } from './types';
+import type { AppState, UserProfile, Asset, Liability, MortgageReport, MislakaReport, RetirementGoals, BankAccount, PensionData, FinancialRecord, Goal, Recommendation, UploadedFile } from './types';
 
 const STORAGE_KEY = 'financial-planner-data';
 
@@ -12,6 +12,7 @@ function getDefaultState(): AppState {
     mortgageReports: [],
     mislakaReports: [],
     pensionData: [],
+    bankAccounts: [],
     financialRecords: [],
     retirementGoals: null,
     goals: [],
@@ -259,6 +260,29 @@ export function getUploadedFiles(): UploadedFile[] {
 export function saveUploadedFile(file: UploadedFile): void {
   const state = loadState();
   state.uploadedFiles.push(file);
+  saveState(state);
+}
+
+// Bank Accounts
+export function getBankAccounts(): BankAccount[] {
+  return loadState().bankAccounts || [];
+}
+
+export function saveBankAccount(account: BankAccount): void {
+  const state = loadState();
+  if (!state.bankAccounts) state.bankAccounts = [];
+  const dupeIdx = state.bankAccounts.findIndex(a => a.accountNumber === account.accountNumber && a.period === account.period);
+  if (dupeIdx >= 0) {
+    state.bankAccounts[dupeIdx] = account;
+  } else {
+    state.bankAccounts.push(account);
+  }
+  saveState(state);
+}
+
+export function clearAllBankAccounts(): void {
+  const state = loadState();
+  state.bankAccounts = [];
   saveState(state);
 }
 

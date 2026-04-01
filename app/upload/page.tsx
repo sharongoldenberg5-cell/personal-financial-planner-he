@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from '@/lib/translations';
-import { saveFinancialRecords, saveUploadedFile, saveAsset, saveLiability, saveMortgageReport, saveMislakaReport, generateId } from '@/lib/storage';
+import { saveFinancialRecords, saveUploadedFile, saveAsset, saveLiability, saveMortgageReport, saveMislakaReport, saveBankAccount, generateId } from '@/lib/storage';
 import { formatCurrency } from '@/lib/utils';
 import type { FinancialRecord, Asset, Liability, MortgageReport as MortgageReportType, MislakaReport } from '@/lib/types';
 import {
@@ -28,6 +28,23 @@ interface MislakaData {
   products: { id: string; productType: string; providerName: string; planName: string; totalBalance: number; [key: string]: unknown }[];
 }
 
+interface BankAccountData {
+  accountNumber: string;
+  bank: string;
+  period: string;
+  transactions: {
+    date: string;
+    code: string;
+    action: string;
+    details: string;
+    reference: string;
+    debit: number;
+    credit: number;
+    balance: number;
+    category: string;
+  }[];
+}
+
 interface ParseResult {
   records: FinancialRecord[];
   rawData: Record<string, string>[];
@@ -36,6 +53,7 @@ interface ParseResult {
   error?: string;
   mortgageReport?: MortgageReport;
   mislakaData?: MislakaData;
+  bankAccountData?: BankAccountData;
 }
 
 interface ZipParseResult {
@@ -168,9 +186,10 @@ export default function UploadPage() {
     return () => clearInterval(interval);
   }, [fileResults]);
 
-  // Auto-save mortgage reports and mislaka data when detected
+  // Auto-save mortgage reports, mislaka data, and bank accounts when detected
   const savedMortgageIds = useRef<Set<string>>(new Set());
   const savedMislakaIds = useRef<Set<string>>(new Set());
+  const savedBankAccountIds = useRef<Set<string>>(new Set());
   useEffect(() => {
     for (const fr of fileResults) {
       if (fr.processing) continue;
@@ -218,6 +237,21 @@ export default function UploadPage() {
 
           savedMislakaIds.current.add(fr.id);
         }
+      }
+      // Bank account data
+      const bankData = fr.result?.bankAccountData;
+      if (bankData && bankData.transactions.length > 0 && !savedBankAccountIds.current.has(fr.id)) {
+        saveBankAccount({
+          id: fr.id,
+          accountNumber: bankData.accountNumber,
+          bank: bankData.bank,
+          type: 'personal',
+          owner: 'client',
+          period: bankData.period,
+          transactions: bankData.transactions,
+          importDate: new Date().toISOString(),
+        });
+        savedBankAccountIds.current.add(fr.id);
       }
     }
   }, [fileResults]);
@@ -542,6 +576,7 @@ export default function UploadPage() {
             const isExpanded = expandedFile === fr.id;
             const mortgage = fr.result?.mortgageReport;
             const hasMislaka = fr.zipResult?.files?.some(f => f.mislakaData) || false;
+            const bankData = fr.result?.bankAccountData;
 
             return (
               <div key={fr.id} className="bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
@@ -563,6 +598,8 @@ export default function UploadPage() {
                           <span className="text-danger">{hasError}</span>
                         ) : mortgage ? (
                           <span>{t('upload.mortgageReport')} • {formatCurrency(mortgage.totalBalance)}</span>
+                        ) : bankData ? (
+                          <span>תנועות בנק • {bankData.transactions.length} תנועות</span>
                         ) : (
                           <span>{totalRecords} {t('upload.records')}</span>
                         )}
