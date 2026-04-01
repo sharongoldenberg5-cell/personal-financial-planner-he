@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/translations';
-import { loadState, calculateNetWorth, calculateTotalLiabilities, getBankAccounts } from '@/lib/storage';
+import { loadState, calculateNetWorth, calculateTotalLiabilities } from '@/lib/storage';
 import { formatCurrency } from '@/lib/utils';
-import type { AppState, BankAccount } from '@/lib/types';
+import type { AppState } from '@/lib/types';
 import {
   Wallet,
   TrendingUp,
@@ -17,43 +17,18 @@ import {
   User,
   ArrowLeft,
   ArrowRight,
-  ChevronDown,
-  ChevronUp,
-  ArrowRightLeft,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 
 const COLORS = ['#2563eb', '#7c3aed', '#16a34a', '#d97706', '#dc2626', '#0891b2', '#4f46e5'];
 
-const CATEGORY_CONFIG: Record<string, { label: string; color: string }> = {
-  'הכנסה-משכורת': { label: 'משכורת', color: '#16a34a' },
-  'דיור-משכנתא': { label: 'משכנתא', color: '#dc2626' },
-  'דיור-שכירות': { label: 'שכירות', color: '#dc2626' },
-  'ביטוח': { label: 'ביטוח', color: '#d97706' },
-  'חיסכון-פנסיה': { label: 'חיסכון/פנסיה', color: '#2563eb' },
-  'כרטיס-אשראי': { label: 'כרטיסי אשראי', color: '#7c3aed' },
-  'חשבונות-בית': { label: 'חשבונות בית', color: '#0891b2' },
-  'מזון': { label: 'מזון', color: '#ea580c' },
-  'רכב-דלק': { label: 'רכב/דלק', color: '#64748b' },
-  'העברות': { label: 'העברות', color: '#94a3b8' },
-  'חיסכון': { label: 'חיסכון', color: '#2563eb' },
-  'מט"ח': { label: 'מט"ח', color: '#6366f1' },
-  'אחר': { label: 'אחר', color: '#9ca3af' },
-};
-
-const PIE_COLORS = ['#dc2626', '#7c3aed', '#d97706', '#0891b2', '#ea580c', '#64748b', '#2563eb', '#6366f1', '#9ca3af'];
-
 export default function DashboardPage() {
   const { t, locale } = useTranslation();
   const [state, setState] = useState<AppState | null>(null);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [isMobile, setIsMobile] = useState(false);
-  const [showIncomeDetails, setShowIncomeDetails] = useState(false);
-  const [showExpenseDetails, setShowExpenseDetails] = useState(false);
 
   useEffect(() => {
     setState(loadState());
-    setBankAccounts(getBankAccounts());
     setIsMobile(window.innerWidth < 1024);
   }, []);
 
@@ -61,7 +36,6 @@ export default function DashboardPage() {
 
   const Arrow = locale === 'he' ? ArrowLeft : ArrowRight;
   const isNewUser = !state.profile;
-  const fmtCur = (n: number) => formatCurrency(n, locale === 'he' ? 'he-IL' : 'en-IL');
 
   if (isNewUser && isMobile) {
     return (
@@ -112,43 +86,6 @@ export default function DashboardPage() {
   const monthlySavings = profile ? familyNetIncome - profile.monthlyExpenses : 0;
   const monthlyDebtPayments = (state.liabilities || []).reduce((s, l) => s + l.monthlyPayment, 0);
 
-  // Bank transaction data
-  const allTransactions = bankAccounts.flatMap(a => a.transactions);
-  const hasBankData = allTransactions.length > 0;
-
-  const bankIncome = allTransactions.filter(t => t.credit > 0).reduce((s, t) => s + t.credit, 0);
-  const bankExpenses = allTransactions.filter(t => t.debit > 0).reduce((s, t) => s + t.debit, 0);
-  const bankNetFlow = bankIncome - bankExpenses;
-
-  // Income breakdown by category
-  const incomeByCategory: Record<string, number> = {};
-  for (const t of allTransactions) {
-    if (t.credit > 0) {
-      incomeByCategory[t.category] = (incomeByCategory[t.category] || 0) + t.credit;
-    }
-  }
-  const incomeBreakdown = Object.entries(incomeByCategory)
-    .map(([cat, amount]) => ({ cat, label: CATEGORY_CONFIG[cat]?.label || cat, amount, color: CATEGORY_CONFIG[cat]?.color || '#16a34a' }))
-    .sort((a, b) => b.amount - a.amount);
-
-  // Expense breakdown by category
-  const expensesByCategory: Record<string, number> = {};
-  for (const t of allTransactions) {
-    if (t.debit > 0) {
-      expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.debit;
-    }
-  }
-  const expenseBreakdown = Object.entries(expensesByCategory)
-    .map(([cat, amount]) => ({ cat, label: CATEGORY_CONFIG[cat]?.label || cat, amount, color: CATEGORY_CONFIG[cat]?.color || '#dc2626' }))
-    .sort((a, b) => b.amount - a.amount);
-
-  const expensePieData = expenseBreakdown.map(d => ({ name: d.label, value: d.amount, color: d.color }));
-
-  // Use bank data for income/expenses if available, otherwise fall back to profile
-  const displayIncome = hasBankData ? bankIncome : familyNetIncome;
-  const displayExpenses = hasBankData ? bankExpenses : (profile?.monthlyExpenses || 0) + monthlyDebtPayments;
-  const displaySavings = hasBankData ? bankNetFlow : monthlySavings - monthlyDebtPayments;
-
   const assetsByCategory = state.assets.reduce<Record<string, number>>((acc, a) => {
     acc[a.category] = (acc[a.category] || 0) + a.value;
     return acc;
@@ -189,29 +126,23 @@ export default function DashboardPage() {
           value={formatCurrency(netWorth)}
           color="bg-primary"
         />
-        <ExpandableStatCard
+        <StatCard
           icon={<TrendingUp size={24} />}
-          label={hasBankData ? 'הכנסות (מתנועות)' : t('dashboard.familyNetIncome')}
-          value={fmtCur(displayIncome)}
+          label={t('dashboard.familyNetIncome')}
+          value={formatCurrency(familyNetIncome)}
           color="bg-success"
-          expandable={hasBankData && incomeBreakdown.length > 0}
-          expanded={showIncomeDetails}
-          onToggle={() => setShowIncomeDetails(!showIncomeDetails)}
         />
-        <ExpandableStatCard
+        <StatCard
           icon={<TrendingDown size={24} />}
-          label={hasBankData ? 'הוצאות (מתנועות)' : t('dashboard.monthlyExpenses')}
-          value={fmtCur(displayExpenses)}
+          label={t('dashboard.monthlyExpenses')}
+          value={formatCurrency((profile?.monthlyExpenses || 0) + monthlyDebtPayments)}
           color="bg-danger"
-          expandable={hasBankData && expenseBreakdown.length > 0}
-          expanded={showExpenseDetails}
-          onToggle={() => setShowExpenseDetails(!showExpenseDetails)}
         />
         <StatCard
           icon={<PiggyBank size={24} />}
-          label={hasBankData ? 'תזרים נטו' : t('dashboard.monthlySavings')}
-          value={fmtCur(displaySavings)}
-          color={displaySavings >= 0 ? 'bg-success' : 'bg-danger'}
+          label={t('dashboard.monthlySavings')}
+          value={formatCurrency(monthlySavings - monthlyDebtPayments)}
+          color={monthlySavings - monthlyDebtPayments >= 0 ? 'bg-success' : 'bg-danger'}
         />
         <StatCard
           icon={<TrendingDown size={24} />}
@@ -220,84 +151,6 @@ export default function DashboardPage() {
           color="bg-red-600"
         />
       </div>
-
-      {/* Income Details Expansion */}
-      {showIncomeDetails && hasBankData && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 animate-in slide-in-from-top-2">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-green-800">פירוט הכנסות</h3>
-            <Link href="/transactions" className="text-xs text-primary hover:underline flex items-center gap-1">
-              לכל התנועות <Arrow size={12} />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {incomeBreakdown.map((d, i) => (
-              <div key={i} className="flex items-center justify-between p-2.5 bg-white rounded-lg text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
-                  <span>{d.label}</span>
-                </div>
-                <span className="font-bold text-green-700">{fmtCur(d.amount)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Expense Details Expansion */}
-      {showExpenseDetails && hasBankData && (
-        <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4 animate-in slide-in-from-top-2">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-red-800">פירוט הוצאות</h3>
-            <Link href="/transactions" className="text-xs text-primary hover:underline flex items-center gap-1">
-              לכל התנועות <Arrow size={12} />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {expenseBreakdown.map((d, i) => (
-              <div key={i} className="flex items-center justify-between p-2.5 bg-white rounded-lg text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
-                  <span>{d.label}</span>
-                </div>
-                <span className="font-bold text-red-700">{fmtCur(d.amount)}</span>
-              </div>
-            ))}
-          </div>
-          {/* Mini pie */}
-          {expensePieData.length > 2 && (
-            <div className="mt-3">
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={expensePieData} cx="50%" cy="50%" outerRadius={70} innerRadius={35} dataKey="value"
-                    label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`}>
-                    {expensePieData.map((d, i) => <Cell key={i} fill={d.color || PIE_COLORS[i % PIE_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(val) => fmtCur(Number(val))} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Bank Transaction Summary - shown when bank data exists */}
-      {hasBankData && (
-        <div className="bg-surface rounded-xl shadow-sm border border-border p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ArrowRightLeft size={18} className="text-primary" />
-              <span className="font-medium text-sm">
-                נתונים מ-{bankAccounts.length} חשבון{bankAccounts.length > 1 ? 'ות' : ''} בנק
-                ({allTransactions.length} תנועות)
-              </span>
-            </div>
-            <Link href="/transactions" className="text-xs text-primary hover:underline flex items-center gap-1">
-              ניתוח מלא <Arrow size={12} />
-            </Link>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Asset Distribution */}
@@ -410,38 +263,6 @@ function StatCard({ icon, label, value, color }: {
           <p className="text-sm text-text-light">{label}</p>
           <p className="text-xl font-bold">{value}</p>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ExpandableStatCard({ icon, label, value, color, expandable, expanded, onToggle }: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  color: string;
-  expandable?: boolean;
-  expanded?: boolean;
-  onToggle?: () => void;
-}) {
-  return (
-    <div
-      className={`bg-surface rounded-xl shadow-sm border border-border p-5 ${expandable ? 'cursor-pointer hover:border-primary/50 transition-colors' : ''}`}
-      onClick={expandable ? onToggle : undefined}
-    >
-      <div className="flex items-center gap-3">
-        <div className={`${color} text-white p-2.5 rounded-lg`}>
-          {icon}
-        </div>
-        <div className="flex-1">
-          <p className="text-sm text-text-light">{label}</p>
-          <p className="text-xl font-bold">{value}</p>
-        </div>
-        {expandable && (
-          <div className="text-text-light">
-            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </div>
-        )}
       </div>
     </div>
   );

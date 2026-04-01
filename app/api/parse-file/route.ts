@@ -280,18 +280,53 @@ function parseBankTransactions(rawRows: unknown[][], fileName: string): ParseRes
   // Category detection based on action/details
   function categorizeTransaction(action: string, details: string): string {
     const text = (action + ' ' + details).toLowerCase();
-    if (text.includes('משכורת') || text.includes('שכר')) return 'הכנסה-משכורת';
-    if (text.includes('משכנתא')) return 'דיור-משכנתא';
-    if (text.includes('שכ"ד') || text.includes('שכירות')) return 'דיור-שכירות';
-    if (text.includes('ביטוח') || text.includes('מנורה') || text.includes('הראל') || text.includes('הפניקס')) return 'ביטוח';
-    if (text.includes('גמל') || text.includes('פנסי') || text.includes('מיטב') || text.includes('אלטשולר')) return 'חיסכון-פנסיה';
-    if (text.includes('כאל') || text.includes('ישראכרט') || text.includes('אמריקן') || text.includes('מקס')) return 'כרטיס-אשראי';
-    if (text.includes('חשמל') || text.includes('מים') || text.includes('ארנונה') || text.includes('גז')) return 'חשבונות-בית';
-    if (text.includes('סופר') || text.includes('שופרסל') || text.includes('רמי') || text.includes('מזון')) return 'מזון';
-    if (text.includes('דלק') || text.includes('סונול') || text.includes('פז') || text.includes('דור')) return 'רכב-דלק';
-    if (text.includes('העברה') || text.includes('הפקדה') || text.includes('bit')) return 'העברות';
-    if (text.includes('פקדון') || text.includes('חיסכון')) return 'חיסכון';
-    if (text.includes('מט"ח') || text.includes('סחר')) return 'מט"ח';
+    // הכנסות
+    if (text.includes('משכורת') || text.includes('שכר') || text.includes('salary')) return 'הכנסה-משכורת';
+    if (text.includes('קצבה') || text.includes('ביטוח לאומי') || text.includes('ביט"ל')) return 'הכנסה-קצבה';
+    if (text.includes('שכ"ד') && (text.includes('קבלה') || text.includes('זכות'))) return 'הכנסה-שכירות';
+    // דיור
+    if (text.includes('משכנתא') || text.includes('משכנתה')) return 'דיור-משכנתא';
+    if (text.includes('שכ"ד') || text.includes('שכירות') || text.includes('שכיר')) return 'דיור-שכירות';
+    if (text.includes('ועד בית') || text.includes('ועד-בית')) return 'דיור-ועד-בית';
+    // אנרגיה ותשתיות
+    if (text.includes('חשמל') || text.includes('חח"י') || text.includes('חברת חשמל')) return 'אנרגיה-חשמל';
+    if (text.includes('גז') || text.includes('סופרגז') || text.includes('אמישראגז') || text.includes('פזגז')) return 'אנרגיה-גז';
+    if (text.includes('מים') || text.includes('מקורות') || text.includes('תאגיד')) return 'אנרגיה-מים';
+    // מיסים ורשויות
+    if (text.includes('ארנונה') || text.includes('עירי')) return 'מיסים-ארנונה';
+    if (text.includes('מס הכנסה') || text.includes('מס-הכנסה')) return 'מיסים-מס-הכנסה';
+    if (text.includes('ביטוח לאומי') || text.includes('ביט"ל')) return 'מיסים-ביטוח-לאומי';
+    if (text.includes('מע"מ') || text.includes('מעמ')) return 'מיסים-מעמ';
+    // ביטוח
+    if (text.includes('ביטוח') || text.includes('מנורה') || text.includes('הראל') || text.includes('הפניקס') || text.includes('כלל ביטוח') || text.includes('איילון')) return 'ביטוח';
+    // חיסכון ופנסיה
+    if (text.includes('גמל') || text.includes('פנסי') || text.includes('מיטב') || text.includes('אלטשולר') || text.includes('הלמן')) return 'חיסכון-פנסיה';
+    if (text.includes('פקדון') || text.includes('חיסכון') || text.includes('קה"ש') || text.includes('השתלמות')) return 'חיסכון';
+    // כרטיסי אשראי
+    if (text.includes('כאל') || text.includes('ישראכרט') || text.includes('אמריקן') || text.includes('מקס') || text.includes('visa') || text.includes('לאומי קארד') || text.includes('דיינרס')) return 'כרטיס-אשראי';
+    // תקשורת
+    if (text.includes('סלקום') || text.includes('פרטנר') || text.includes('פלאפון') || text.includes('הוט') || text.includes('בזק') || text.includes('012') || text.includes('גולן') || text.includes('רמי לוי תקשורת') || text.includes('yes')) return 'תקשורת';
+    // מזון וסופרים
+    if (text.includes('סופר') || text.includes('שופרסל') || text.includes('רמי לוי') || text.includes('מזון') || text.includes('ויקטורי') || text.includes('אושר עד') || text.includes('יוחננוף') || text.includes('חצי חינם') || text.includes('טיב טעם') || text.includes('פרש מרקט')) return 'מזון';
+    // רכב ודלק
+    if (text.includes('דלק') || text.includes('סונול') || text.includes('פז') || text.includes('דור אלון') || text.includes('דורי') || text.includes('ten') || text.includes('yellow')) return 'רכב-דלק';
+    if (text.includes('רכב') || text.includes('ביטוח חובה') || text.includes('טסט') || text.includes('רישוי') || text.includes('חניה') || text.includes('חנייה')) return 'רכב-אחזקה';
+    // חינוך
+    if (text.includes('גן ילדים') || text.includes('צהרון') || text.includes('בית ספר') || text.includes('אוניברסיט') || text.includes('מכללה') || text.includes('שכר לימוד') || text.includes('חוגים')) return 'חינוך';
+    // בריאות
+    if (text.includes('מכבי') || text.includes('כללית') || text.includes('מאוחדת') || text.includes('לאומית') || text.includes('רופא') || text.includes('בית חולים') || text.includes('מרפאה') || text.includes('בית מרקחת') || text.includes('סופר פארם')) return 'בריאות';
+    // בילוי ופנאי
+    if (text.includes('מסעדה') || text.includes('קפה') || text.includes('סטארבקס') || text.includes('ארומה') || text.includes('קולנוע') || text.includes('הופעה') || text.includes('ספורט') || text.includes('חדר כושר') || text.includes('הולמס')) return 'בילוי-פנאי';
+    // ביגוד וקניות
+    if (text.includes('zara') || text.includes('h&m') || text.includes('fox') || text.includes('קסטרו') || text.includes('רנואר') || text.includes('אמריקן איגל') || text.includes('קניון')) return 'ביגוד-קניות';
+    // תחבורה
+    if (text.includes('רב קו') || text.includes('רכבת') || text.includes('אגד') || text.includes('דן') || text.includes('מטרופולין') || text.includes('gett') || text.includes('מונית')) return 'תחבורה';
+    // העברות
+    if (text.includes('העברה') || text.includes('הפקדה') || text.includes('bit') || text.includes('paybox') || text.includes('פפר')) return 'העברות';
+    // מט"ח
+    if (text.includes('מט"ח') || text.includes('סחר') || text.includes('דולר') || text.includes('יורו')) return 'מט"ח';
+    // הלוואות
+    if (text.includes('הלוואה') || text.includes('החזר הלו')) return 'הלוואות';
     return 'אחר';
   }
 
