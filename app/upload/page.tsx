@@ -8,7 +8,7 @@ import type { FinancialRecord, Asset, Liability, MortgageReport as MortgageRepor
 import {
   Upload, FileSpreadsheet, CheckCircle, AlertCircle, X,
   FileText, FileArchive, File as FileIcon, Wallet, TrendingDown,
-  ChevronDown, ChevronUp, Shield, Building,
+  ChevronDown, ChevronUp, Shield, Building, BarChart3,
 } from 'lucide-react';
 
 interface MortgageSubLoan {
@@ -74,6 +74,7 @@ interface FileResult {
   imported: boolean;
   liabilityCreated: boolean;
   assetCreated: boolean;
+  bankAccountSaved: boolean;
   processing?: boolean;
 }
 
@@ -238,21 +239,7 @@ export default function UploadPage() {
           savedMislakaIds.current.add(fr.id);
         }
       }
-      // Bank account data
-      const bankData = fr.result?.bankAccountData;
-      if (bankData && bankData.transactions.length > 0 && !savedBankAccountIds.current.has(fr.id)) {
-        saveBankAccount({
-          id: fr.id,
-          accountNumber: bankData.accountNumber,
-          bank: bankData.bank,
-          type: 'personal',
-          owner: 'client',
-          period: bankData.period,
-          transactions: bankData.transactions,
-          importDate: new Date().toISOString(),
-        });
-        savedBankAccountIds.current.add(fr.id);
-      }
+      // Bank account data - not auto-saved, user must approve via button
     }
   }, [fileResults]);
 
@@ -269,6 +256,7 @@ export default function UploadPage() {
       imported: false,
       liabilityCreated: false,
       assetCreated: false,
+      bankAccountSaved: false,
       processing: true,
     }));
     setFileResults(prev => [...prev, ...placeholders]);
@@ -419,6 +407,22 @@ export default function UploadPage() {
       saveLiability(liability);
     }
     setFileResults(prev => prev.map(f => f.id === fr.id ? { ...f, liabilityCreated: true } : f));
+  };
+
+  const handleSaveBankAccount = (fr: FileResult) => {
+    const bankData = fr.result?.bankAccountData;
+    if (!bankData || bankData.transactions.length === 0) return;
+    saveBankAccount({
+      id: fr.id,
+      accountNumber: bankData.accountNumber,
+      bank: bankData.bank,
+      type: 'personal',
+      owner: 'client',
+      period: bankData.period,
+      transactions: bankData.transactions,
+      importDate: new Date().toISOString(),
+    });
+    setFileResults(prev => prev.map(f => f.id === fr.id ? { ...f, bankAccountSaved: true } : f));
   };
 
   const removeFile = (id: string) => {
@@ -606,6 +610,7 @@ export default function UploadPage() {
                         {fr.imported && <span className="text-success ms-2">✓ {t('upload.imported')}</span>}
                         {fr.liabilityCreated && <span className="text-danger ms-2">✓ {t('upload.liabilityCreated')}</span>}
                         {fr.assetCreated && <span className="text-primary ms-2">✓ {t('upload.assetCreated')}</span>}
+                        {fr.bankAccountSaved && <span className="text-blue-600 ms-2">✓ תנועות יובאו</span>}
                       </p>
                     </div>
                   </div>
@@ -653,6 +658,92 @@ export default function UploadPage() {
                             ))}
                           </tbody>
                         </table>
+                      </div>
+                    )}
+
+                    {/* Bank Account Transactions Preview */}
+                    {bankData && bankData.transactions.length > 0 && (
+                      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <h3 className="text-base font-bold text-blue-800 mb-3 flex items-center gap-2">
+                          <BarChart3 size={18} /> תנועות חשבון בנק
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                          <div className="bg-white rounded-lg p-2.5 text-center">
+                            <p className="text-xs text-text-light">בנק</p>
+                            <p className="font-semibold text-sm">{bankData.bank || 'לא ידוע'}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-2.5 text-center">
+                            <p className="text-xs text-text-light">חשבון</p>
+                            <p className="font-semibold text-sm">{bankData.accountNumber || '-'}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-2.5 text-center">
+                            <p className="text-xs text-text-light">תקופה</p>
+                            <p className="font-semibold text-sm">{bankData.period || '-'}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-2.5 text-center">
+                            <p className="text-xs text-text-light">תנועות</p>
+                            <p className="font-semibold text-sm">{bankData.transactions.length}</p>
+                          </div>
+                        </div>
+                        {/* Summary */}
+                        {(() => {
+                          const income = bankData.transactions.filter(t => t.credit > 0).reduce((s, t) => s + t.credit, 0);
+                          const expenses = bankData.transactions.filter(t => t.debit > 0).reduce((s, t) => s + t.debit, 0);
+                          return (
+                            <div className="grid grid-cols-3 gap-2 mb-3">
+                              <div className="bg-green-100 rounded-lg p-2 text-center">
+                                <p className="text-xs text-green-700">הכנסות</p>
+                                <p className="font-bold text-green-700 text-sm">{formatCurrency(income)}</p>
+                              </div>
+                              <div className="bg-red-100 rounded-lg p-2 text-center">
+                                <p className="text-xs text-red-700">הוצאות</p>
+                                <p className="font-bold text-red-700 text-sm">{formatCurrency(expenses)}</p>
+                              </div>
+                              <div className={`${income >= expenses ? 'bg-blue-100' : 'bg-orange-100'} rounded-lg p-2 text-center`}>
+                                <p className={`text-xs ${income >= expenses ? 'text-blue-700' : 'text-orange-700'}`}>תזרים נטו</p>
+                                <p className={`font-bold text-sm ${income >= expenses ? 'text-blue-700' : 'text-orange-700'}`}>{formatCurrency(income - expenses)}</p>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        {/* Sample transactions */}
+                        <table className="w-full text-xs mb-3">
+                          <thead>
+                            <tr className="border-b border-blue-200 text-text-light">
+                              <th className="px-1.5 py-1 text-start">תאריך</th>
+                              <th className="px-1.5 py-1 text-start">פעולה</th>
+                              <th className="px-1.5 py-1 text-start">פרטים</th>
+                              <th className="px-1.5 py-1 text-end">חובה</th>
+                              <th className="px-1.5 py-1 text-end">זכות</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {bankData.transactions.slice(0, 5).map((t, i) => (
+                              <tr key={i} className="border-b border-blue-100">
+                                <td className="px-1.5 py-1">{t.date}</td>
+                                <td className="px-1.5 py-1">{t.action}</td>
+                                <td className="px-1.5 py-1 max-w-[150px] truncate">{t.details}</td>
+                                <td className="px-1.5 py-1 text-end">{t.debit > 0 ? <span className="text-danger">{formatCurrency(t.debit)}</span> : ''}</td>
+                                <td className="px-1.5 py-1 text-end">{t.credit > 0 ? <span className="text-success">{formatCurrency(t.credit)}</span> : ''}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {bankData.transactions.length > 5 && (
+                          <p className="text-xs text-blue-600 mb-3">... +{bankData.transactions.length - 5} תנועות נוספות</p>
+                        )}
+                        {!fr.bankAccountSaved ? (
+                          <button onClick={() => handleSaveBankAccount(fr)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                            <BarChart3 size={16} /> ייבא תנועות לניתוח
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-2 text-blue-700 text-sm">
+                            <CheckCircle size={16} />
+                            <span>התנועות יובאו בהצלחה</span>
+                            <a href="/transactions" className="underline hover:text-blue-900 ms-1">עבור לניתוח תנועות →</a>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -723,7 +814,7 @@ export default function UploadPage() {
                     )}
 
                     {/* Action Buttons */}
-                    {(records.length > 0 || mortgage) && (
+                    {(records.length > 0 || mortgage) && !bankData && (
                       <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
                         {records.length > 0 && !fr.imported && (
                           <button onClick={() => handleImport(fr)}
