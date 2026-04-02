@@ -189,8 +189,6 @@ export default function UploadPage() {
               result: singleData,
               zipResult: apiResult.type === 'zip' ? apiResult.data : null,
               processing: false,
-              bankAccountSaved: !!(singleData?.bankAccountData?.transactions?.length),
-              creditCardSaved: !!(singleData?.creditCardData?.transactions?.length),
             } : f));
             jobMapRef.current.delete(fr.id);
           } else if (data.status === 'error') {
@@ -264,7 +262,18 @@ export default function UploadPage() {
           savedMislakaIds.current.add(fr.id);
         }
       }
-      // Bank account and credit card data are auto-saved in processFiles when API result arrives
+      // Auto-save bank account data
+      const bankData = fr.result?.bankAccountData;
+      if (bankData && bankData.transactions.length > 0 && !savedBankAccountIds.current.has(fr.id)) {
+        saveBankAccount({ id: fr.id, accountNumber: bankData.accountNumber, bank: bankData.bank, type: 'personal', owner: 'client', period: bankData.period, transactions: bankData.transactions, importDate: new Date().toISOString() });
+        savedBankAccountIds.current.add(fr.id);
+      }
+      // Auto-save credit card data
+      const ccData = fr.result?.creditCardData;
+      if (ccData && ccData.transactions.length > 0 && !savedCreditCardIds.current.has(fr.id)) {
+        saveCreditCard({ id: fr.id, cardNumber: ccData.cardNumber, cardName: ccData.cardName, owner: 'client', period: ccData.period, totalCharged: ccData.totalCharged, transactions: ccData.transactions, importDate: new Date().toISOString() });
+        savedCreditCardIds.current.add(fr.id);
+      }
     }
   }, [fileResults]);
 
@@ -308,24 +317,11 @@ export default function UploadPage() {
         if (data.status === 'done') {
           // Fast file (Excel/CSV) - result came back immediately
           const apiResult: ApiResponse = data.result;
-          const singleData = apiResult.type === 'single' ? apiResult.data : null;
-          // Auto-save bank account data
-          const bd = singleData?.bankAccountData;
-          if (bd && bd.transactions.length > 0) {
-            saveBankAccount({ id: placeholderId, accountNumber: bd.accountNumber, bank: bd.bank, type: 'personal', owner: 'client', period: bd.period, transactions: bd.transactions, importDate: new Date().toISOString() });
-          }
-          // Auto-save credit card data
-          const cd = singleData?.creditCardData;
-          if (cd && cd.transactions.length > 0) {
-            saveCreditCard({ id: placeholderId, cardNumber: cd.cardNumber, cardName: cd.cardName, owner: 'client', period: cd.period, totalCharged: cd.totalCharged, transactions: cd.transactions, importDate: new Date().toISOString() });
-          }
           setFileResults(prev => prev.map(f => f.id === placeholderId ? {
             ...f,
-            result: singleData,
+            result: apiResult.type === 'single' ? apiResult.data : null,
             zipResult: apiResult.type === 'zip' ? apiResult.data : null,
             processing: false,
-            bankAccountSaved: !!(bd?.transactions?.length),
-            creditCardSaved: !!(cd?.transactions?.length),
           } : f));
         } else if (data.status === 'processing') {
           // Slow file (PDF/Word) - store jobId for polling
@@ -523,8 +519,8 @@ export default function UploadPage() {
   return (
     <div className="max-w-4xl mx-auto"
       onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-      onDragLeave={e => { if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false); }}
-      onDrop={handleDrop}
+      onDragLeave={() => setIsDragging(false)}
+      onDrop={e => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files.length > 0) processFiles(e.dataTransfer.files); }}
     >
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">{t('upload.title')}</h1>
