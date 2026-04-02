@@ -43,7 +43,7 @@ export default function LoginPage() {
           <p className="text-sm text-text-light mt-1">התחברות למערכת</p>
         </div>
 
-        <form onSubmit={handleLogin} className="bg-surface rounded-xl shadow-sm border border-border p-6 space-y-4">
+        <form onSubmit={handleLogin} autoComplete="off" className="bg-surface rounded-xl shadow-sm border border-border p-6 space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">{error}</div>
           )}
@@ -55,6 +55,7 @@ export default function LoginPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
+              autoComplete="new-password"
               className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none text-start"
               dir="ltr"
               placeholder="email@example.com"
@@ -68,6 +69,7 @@ export default function LoginPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
+              autoComplete="new-password"
               className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none text-start"
               dir="ltr"
               placeholder="********"
