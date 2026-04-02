@@ -11,7 +11,15 @@ function syncProfileToDb() {
     fetch('/api/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile: state.profile }),
+      credentials: 'include',
+      body: JSON.stringify({
+        profile: state.profile,
+        assets: state.assets,
+        liabilities: state.liabilities,
+        goals: state.goals,
+        retirementGoals: state.retirementGoals,
+        recommendations: state.recommendations,
+      }),
     }).catch(() => {});
   } catch {}
 }
