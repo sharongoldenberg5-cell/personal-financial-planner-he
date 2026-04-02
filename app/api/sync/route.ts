@@ -26,7 +26,9 @@ export async function POST(request: NextRequest) {
 
       // Delete existing profile first, then insert
       await adminClient.from('Profile').delete().eq('userId', userId);
+      const now = new Date().toISOString();
       const { error } = await adminClient.from('Profile').insert({
+        id: crypto.randomUUID(),
         userId,
         firstName: p.firstName || null,
         lastName: p.lastName || null,
@@ -48,6 +50,8 @@ export async function POST(request: NextRequest) {
         spouseMonthlyIncomeNet: p.spouseMonthlyIncomeNet || null,
         spouseRetirementAge: p.spouseRetirementAge || null,
         retirementAge: p.retirementAge || 67,
+        createdAt: now,
+        updatedAt: now,
       });
 
       if (error) {
