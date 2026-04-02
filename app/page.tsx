@@ -163,9 +163,11 @@ export default function DashboardPage() {
                   data={pieData}
                   cx="50%"
                   cy="50%"
-                  outerRadius={90}
+                  outerRadius={70}
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                  label={({ name, percent }: any) => `${name || ''} ${(((percent || 0)) * 100).toFixed(0)}%`}
+                  labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
+                  fontSize={10}
                 >
                   {pieData.map((_, idx) => (
                     <Cell key={idx} fill={COLORS[idx % COLORS.length]} />

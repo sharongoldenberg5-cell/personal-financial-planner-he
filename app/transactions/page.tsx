@@ -9,7 +9,7 @@ import {
   RotateCcw, TrendingUp, TrendingDown, CreditCard, Home, Shield,
   PiggyBank, Wallet, ArrowRightLeft, BarChart3, AlertTriangle,
   Zap, Phone, ShoppingBag, GraduationCap, Heart, Utensils,
-  Car, Bus, Receipt, Building, ChevronDown, ChevronUp, Landmark,
+  Car, Bus, Receipt, Building, ChevronDown, ChevronUp, Landmark, Plane, Globe, Coffee,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import Link from 'next/link';
@@ -55,8 +55,15 @@ const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: type
   'בריאות': { label: 'בריאות', color: '#e11d48', icon: Heart, group: 'בריאות' },
   // בילוי ופנאי
   'בילוי-פנאי': { label: 'בילוי ופנאי', color: '#db2777', icon: Utensils, group: 'בילוי' },
+  'בילוי-מסעדות': { label: 'מסעדות וקפה', color: '#ec4899', icon: Coffee, group: 'בילוי' },
   // ביגוד
   'ביגוד-קניות': { label: 'ביגוד וקניות', color: '#c026d3', icon: ShoppingBag, group: 'ביגוד' },
+  // נסיעות
+  'נסיעות': { label: 'נסיעות ותיירות', color: '#f472b6', icon: Plane, group: 'נסיעות' },
+  // קניות אונליין
+  'קניות-אונליין': { label: 'קניות אונליין', color: '#a855f7', icon: Globe, group: 'קניות' },
+  // תקשורת מנויים (מכרטיס אשראי)
+  'תקשורת-מנויים': { label: 'מנויים ותקשורת', color: '#22d3ee', icon: Phone, group: 'תקשורת' },
   // העברות
   'העברות': { label: 'העברות', color: '#94a3b8', icon: ArrowRightLeft, group: 'העברות' },
   // הלוואות
@@ -130,10 +137,10 @@ export default function TransactionsPage() {
     .map(([cat, data]) => ({ cat, ...data }))
     .sort((a, b) => b.amount - a.amount);
 
-  // Expense breakdown
+  // Expense breakdown (exclude כרטיס-אשראי as it's a payment method, not expense category)
   const expensesByCategory: Record<string, { amount: number; transactions: BankTransaction[] }> = {};
   for (const t of allTransactions) {
-    if (t.debit > 0) {
+    if (t.debit > 0 && t.category !== 'כרטיס-אשראי') {
       if (!expensesByCategory[t.category]) expensesByCategory[t.category] = { amount: 0, transactions: [] };
       expensesByCategory[t.category].amount += t.debit;
       expensesByCategory[t.category].transactions.push(t);
@@ -366,14 +373,10 @@ export default function TransactionsPage() {
             <div>
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={expensePieData} cx="50%" cy="50%" outerRadius={85} innerRadius={40} dataKey="value"
-                    label={({ name, percent, x, y, midAngle }: any) => { // eslint-disable-line
-                      const RADIAN = Math.PI / 180;
-                      const nx = (x || 0) + Math.cos(-((midAngle || 0)) * RADIAN) * 8;
-                      const ny = (y || 0) + Math.sin(-((midAngle || 0)) * RADIAN) * 8;
-                      return <text x={nx} y={ny} textAnchor={nx > ((x || 0) - 5) ? 'start' : 'end'} dominantBaseline="central" fontSize={10} fill="#374151">{`${name || ''} ${(((percent || 0)) * 100).toFixed(0)}%`}</text>;
-                    }}
+                  <Pie data={expensePieData} cx="50%" cy="50%" outerRadius={70} innerRadius={30} dataKey="value"
+                    label={({ name, percent }: any) => `${name || ''} ${(((percent || 0)) * 100).toFixed(0)}%`}
                     labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
+                    fontSize={9}
                   >
                     {expensePieData.map((d, i) => <Cell key={i} fill={d.color || PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
