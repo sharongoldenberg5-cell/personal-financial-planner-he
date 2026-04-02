@@ -35,7 +35,7 @@ export function generateRuleBasedRecommendations(input: AnalysisInput): Recommen
   const allTransactions = bankAccounts.flatMap(a => a.transactions);
   const hasTransactions = allTransactions.length > 0;
   const txTotalIncome = allTransactions.filter(t => t.credit > 0).reduce((s, t) => s + t.credit, 0);
-  const txTotalExpenses = allTransactions.filter(t => t.debit > 0).reduce((s, t) => s + t.debit, 0);
+  const txTotalExpenses = allTransactions.filter(t => t.debit > 0 && t.category !== 'כרטיס-אשראי').reduce((s, t) => s + t.debit, 0);
   const txByCategory: Record<string, number> = {};
   for (const t of allTransactions) {
     if (t.debit > 0) {

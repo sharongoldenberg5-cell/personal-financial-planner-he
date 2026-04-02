@@ -121,8 +121,12 @@ export default function TransactionsPage() {
 
   // Totals
   const totalIncome = allTransactions.filter(t => t.credit > 0).reduce((s, t) => s + t.credit, 0);
-  const totalExpenses = allTransactions.filter(t => t.debit > 0).reduce((s, t) => s + t.debit, 0);
-  const netFlow = totalIncome - totalExpenses;
+  // Exclude CC payments from bank (כרטיס-אשראי) - they're transfers to CC company, not real expenses
+  // If CC reports uploaded, actual spending shown from CC data. If not, show banner to upload.
+  const hasCreditCardData = creditCards.length > 0;
+  const ccPaymentsFromBank = bankTransactions.filter(t => t.debit > 0 && t.category === 'כרטיס-אשראי').reduce((s, t) => s + t.debit, 0);
+  const totalExpenses = allTransactions.filter(t => t.debit > 0 && t.category !== 'כרטיס-אשראי').reduce((s, t) => s + t.debit, 0);
+  const netFlow = totalIncome - totalExpenses - ccPaymentsFromBank;
 
   // Income breakdown
   const incomeByCategory: Record<string, { amount: number; transactions: BankTransaction[] }> = {};
@@ -273,9 +277,9 @@ export default function TransactionsPage() {
           <p className="text-xs opacity-60 mt-1">{incomeBreakdown.length} קטגוריות</p>
         </div>
         <div className="bg-gradient-to-br from-red-600 to-red-500 text-white rounded-xl p-5">
-          <p className="text-sm opacity-80">הוצאות</p>
+          <p className="text-sm opacity-80">הוצאות (ללא כרט&quot;א)</p>
           <p className="text-2xl font-bold">{fmtCur(totalExpenses)}</p>
-          <p className="text-xs opacity-60 mt-1">{expenseBreakdown.length} קטגוריות</p>
+          <p className="text-xs opacity-60 mt-1">{expenseBreakdown.length} קטגוריות{hasCreditCardData ? ` + ${creditCards.length} כרטיסים` : ''}</p>
         </div>
         <div className={`bg-gradient-to-br ${netFlow >= 0 ? 'from-blue-600 to-blue-500' : 'from-orange-600 to-orange-500'} text-white rounded-xl p-5`}>
           <p className="text-sm opacity-80">תזרים נטו</p>
@@ -303,6 +307,29 @@ export default function TransactionsPage() {
               <p className="text-sm">{ins.text}</p>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* CC payments info banner */}
+      {ccPaymentsFromBank > 0 && (
+        <div className={`p-4 rounded-xl border mb-6 ${hasCreditCardData ? 'bg-green-50 border-green-200' : 'bg-purple-50 border-purple-200'}`}>
+          {hasCreditCardData ? (
+            <div className="flex items-center gap-2 text-sm text-green-800">
+              <CreditCard size={16} />
+              <span>תשלומי כרטיסי אשראי ({fmtCur(ccPaymentsFromBank)}) לא נספרים כהוצאה - הפירוט מגיע מדוחות הכרטיסים ({creditCards.length} כרטיסים, {creditCards.reduce((s, c) => s + c.transactions.length, 0)} עסקאות)</span>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center gap-2 text-sm font-medium text-purple-800 mb-1">
+                <CreditCard size={16} />
+                <span>תשלומים לחברות אשראי: {fmtCur(ccPaymentsFromBank)} (לא נספרים כהוצאה)</span>
+              </div>
+              <p className="text-xs text-purple-700">
+                כדי לראות פירוט הוצאות כרטיס האשראי לפי קטגוריה (מזון, ביגוד, דלק וכו') -
+                <a href="/upload" className="underline font-medium ms-1">העלה דוח כרטיס אשראי מכאל/ישראכרט/מקס</a>
+              </p>
+            </div>
+          )}
         </div>
       )}
 
