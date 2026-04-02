@@ -3,79 +3,59 @@
 import { prisma } from './prisma';
 
 export async function dbGetAllUsers() {
-  // Get all users from auth.users table (via raw query since Prisma doesn't manage auth schema)
-  const { PrismaClient } = require('@prisma/client');
-  const rawClient = new PrismaClient();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  // Get auth users via Supabase Admin API
+  let authUsers: any[] = [];
+  if (serviceKey && supabaseUrl) {
+    try {
+      const resp = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+        headers: {
+          'Authorization': `Bearer ${serviceKey}`,
+          'apikey': serviceKey,
+        },
+        cache: 'no-store',
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        authUsers = data.users || [];
+      }
+    } catch {}
+  }
 
   // Get profiles
   const profiles = await prisma.profile.findMany();
   const profileMap = new Map(profiles.map(p => [p.userId, p]));
 
-  // Get auth users via Supabase Admin API
-  let authUsers: { id: string; email: string; created_at: string; last_sign_in_at: string | null }[] = [];
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    const resp = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
-      headers: { 'Authorization': `Bearer ${serviceKey}`, 'apikey': serviceKey! },
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      authUsers = (data.users || []).map((u: any) => ({
-        id: u.id,
-        email: u.email,
-        created_at: u.created_at,
-        last_sign_in_at: u.last_sign_in_at,
-      }));
-    }
-  } catch (e) {
-    console.error('Failed to fetch auth users:', e);
+  // If no auth users found, fall back to profiles
+  if (authUsers.length === 0) {
+    return profiles.map(p => ({
+      userId: p.userId,
+      email: '',
+      firstName: p.firstName,
+      lastName: p.lastName,
+      age: p.age,
+      createdAt: p.createdAt.toISOString(),
+      lastSignIn: null,
+      hasProfile: true,
+    }));
   }
-  await rawClient.$disconnect();
 
-  // Build user list from auth users (includes those without profile)
-  const userIds = authUsers.length > 0
-    ? authUsers.map(u => u.id)
-    : profiles.map(p => p.userId);
-
-  const userSummaries = await Promise.all(
-    (authUsers.length > 0 ? authUsers : profiles.map(p => ({ id: p.userId, email: '', created_at: p.createdAt, last_sign_in_at: null }))).map(async (authUser) => {
-      const profile = profileMap.get(authUser.id);
-
-      const [assetCount, liabilityCount, goalCount, bankAccountCount, creditCardCount, mortgageCount, mislakaCount] = await Promise.all([
-        prisma.asset.count({ where: { userId: authUser.id } }),
-        prisma.liability.count({ where: { userId: authUser.id } }),
-        prisma.goal.count({ where: { userId: authUser.id } }),
-        prisma.bankAccount.count({ where: { userId: authUser.id } }),
-        prisma.creditCardStatement.count({ where: { userId: authUser.id } }),
-        prisma.mortgageReport.count({ where: { userId: authUser.id } }),
-        prisma.mislakaReport.count({ where: { userId: authUser.id } }),
-      ]);
-
-      return {
-        userId: authUser.id,
-        email: authUser.email,
-        firstName: profile?.firstName || null,
-        lastName: profile?.lastName || null,
-        age: profile?.age || null,
-        maritalStatus: profile?.maritalStatus || null,
-        monthlyIncome: profile?.monthlyIncome || null,
-        monthlyExpenses: profile?.monthlyExpenses || null,
-        createdAt: authUser.created_at,
-        lastSignIn: authUser.last_sign_in_at,
-        hasProfile: !!profile,
-        assetCount,
-        liabilityCount,
-        goalCount,
-        bankAccountCount,
-        creditCardCount,
-        mortgageCount,
-        mislakaCount,
-      };
-    })
-  );
-
-  return userSummaries;
+  return authUsers.map((u: any) => {
+    const profile = profileMap.get(u.id);
+    return {
+      userId: u.id,
+      email: u.email || '',
+      firstName: profile?.firstName || null,
+      lastName: profile?.lastName || null,
+      age: profile?.age || null,
+      monthlyIncome: profile?.monthlyIncome || null,
+      createdAt: u.created_at,
+      lastSignIn: u.last_sign_in_at,
+      hasProfile: !!profile,
+    };
+  });
 }
 
 export async function dbGetUserDetail(userId: string) {

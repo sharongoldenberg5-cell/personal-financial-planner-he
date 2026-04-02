@@ -11,19 +11,10 @@ interface UserSummary {
   firstName: string | null;
   lastName: string | null;
   age: number | null;
-  maritalStatus: string | null;
   monthlyIncome: number | null;
-  monthlyExpenses: number | null;
-  createdAt: Date;
-  lastSignIn: Date | null;
+  createdAt: string;
+  lastSignIn: string | null;
   hasProfile: boolean;
-  assetCount: number;
-  liabilityCount: number;
-  goalCount: number;
-  bankAccountCount: number;
-  creditCardCount: number;
-  mortgageCount: number;
-  mislakaCount: number;
 }
 
 export default function AdminUsersPage() {
@@ -96,16 +87,8 @@ export default function AdminUsersPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex gap-2 text-xs text-gray-400">
-                    {user.assetCount > 0 && <span className="bg-blue-900/50 px-2 py-0.5 rounded">{user.assetCount} נכסים</span>}
-                    {user.liabilityCount > 0 && <span className="bg-red-900/50 px-2 py-0.5 rounded">{user.liabilityCount} התחייבויות</span>}
-                    {user.goalCount > 0 && <span className="bg-purple-900/50 px-2 py-0.5 rounded">{user.goalCount} יעדים</span>}
-                    {user.bankAccountCount > 0 && <span className="bg-green-900/50 px-2 py-0.5 rounded">{user.bankAccountCount} חשבונות</span>}
-                    {user.creditCardCount > 0 && <span className="bg-yellow-900/50 px-2 py-0.5 rounded">{user.creditCardCount} כרטיסים</span>}
-                    {user.mortgageCount > 0 && <span className="bg-orange-900/50 px-2 py-0.5 rounded">{user.mortgageCount} משכנתאות</span>}
-                    {user.mislakaCount > 0 && <span className="bg-teal-900/50 px-2 py-0.5 rounded">{user.mislakaCount} מסלקה</span>}
-                  </div>
+                <div className="flex items-center gap-2">
+                  {user.monthlyIncome && <span className="text-xs bg-green-900/50 text-green-300 px-2 py-0.5 rounded">{formatCurrency(user.monthlyIncome)}</span>}
                   {expandedUser === user.userId ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
                 </div>
               </div>
