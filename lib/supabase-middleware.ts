@@ -28,7 +28,7 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // Public routes that don't need auth
-  const publicPaths = ['/auth', '/quiz', '/api'];
+  const publicPaths = ['/auth', '/quiz', '/api', '/admin'];
   const isPublic = publicPaths.some(p => request.nextUrl.pathname.startsWith(p));
 
   if (!user && !isPublic) {

@@ -28,7 +28,7 @@ export default function RootLayout({
   const [locale, setLocale] = useState<Locale>('he');
   const direction = getDirection(locale);
   const t = useMemo(() => getTranslations(locale), [locale]);
-  const isAuthPage = pathname?.startsWith('/auth') || pathname?.startsWith('/quiz');
+  const isAuthPage = pathname?.startsWith('/auth') || pathname?.startsWith('/quiz') || pathname?.startsWith('/admin');
 
   useEffect(() => {
     document.documentElement.lang = locale;
