@@ -42,8 +42,8 @@ export default function RegisterPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push('/');
-      router.refresh();
+      await new Promise(r => setTimeout(r, 500));
+      window.location.href = '/';
     }
   };
 

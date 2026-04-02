@@ -25,8 +25,9 @@ export default function LoginPage() {
       setError(error.message === 'Invalid login credentials' ? 'אימייל או סיסמה שגויים' : error.message);
       setLoading(false);
     } else {
-      router.push('/');
-      router.refresh();
+      // Small delay to let session cookie propagate
+      await new Promise(r => setTimeout(r, 500));
+      window.location.href = '/';
     }
   };
 

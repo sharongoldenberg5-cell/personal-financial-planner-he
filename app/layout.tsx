@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import type { Locale } from '@/lib/types';
@@ -23,9 +24,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const [locale, setLocale] = useState<Locale>('he');
   const direction = getDirection(locale);
   const t = useMemo(() => getTranslations(locale), [locale]);
+  const isAuthPage = pathname?.startsWith('/auth') || pathname?.startsWith('/quiz');
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -59,20 +62,26 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen flex bg-background">
         <LocaleContext.Provider value={contextValue}>
-          <Sidebar />
-          <div className="flex-1 flex flex-col overflow-auto">
-            <main className="flex-1 p-3 pt-14 lg:p-6 lg:pt-6">
-              {children}
-            </main>
-            <footer className="p-4 border-t border-border bg-surface/50">
-              <div className="max-w-4xl mx-auto">
-                <p className="text-xs font-semibold text-text-light mb-1">{t('app.disclaimer')}</p>
-                <p className="text-[11px] text-text-light leading-relaxed">
-                  {t('app.disclaimerFull')}
-                </p>
+          {isAuthPage ? (
+            <div className="flex-1">{children}</div>
+          ) : (
+            <>
+              <Sidebar />
+              <div className="flex-1 flex flex-col overflow-auto">
+                <main className="flex-1 p-3 pt-14 lg:p-6 lg:pt-6">
+                  {children}
+                </main>
+                <footer className="p-4 border-t border-border bg-surface/50">
+                  <div className="max-w-4xl mx-auto">
+                    <p className="text-xs font-semibold text-text-light mb-1">{t('app.disclaimer')}</p>
+                    <p className="text-[11px] text-text-light leading-relaxed">
+                      {t('app.disclaimerFull')}
+                    </p>
+                  </div>
+                </footer>
               </div>
-            </footer>
-          </div>
+            </>
+          )}
         </LocaleContext.Provider>
       </body>
     </html>
