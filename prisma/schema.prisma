@@ -1,0 +1,318 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model Profile {
+  id                      String   @id @default(uuid())
+  userId                  String   @unique
+  firstName               String?
+  lastName                String?
+  idNumber                String?
+  gender                  String?
+  age                     Int?
+  maritalStatus           String?
+  numberOfChildren        Int?
+  childrenAges            Int[]
+  employmentStatus        String?
+  occupation              String?
+  monthlyIncomeGross      Float?
+  monthlyIncome           Float?
+  monthlyExpenses         Float?
+  spouseFirstName         String?
+  spouseAge               Int?
+  spouseEmploymentStatus  String?
+  spouseMonthlyIncomeGross Float?
+  spouseMonthlyIncomeNet  Float?
+  spouseRetirementAge     Int?
+  retirementAge           Int      @default(67)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model Asset {
+  id                  String   @id @default(uuid())
+  userId              String
+  name                String
+  category            String
+  value               Float
+  currency            String   @default("ILS")
+  monthlyContribution Float?   @default(0)
+  interestRate        Float?   @default(0)
+  linkedGoalId        String?
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Liability {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  category        String
+  originalAmount  Float
+  currentBalance  Float
+  interestRate    Float
+  monthlyPayment  Float
+  lender          String?
+  startDate       String?
+  endDate         String?
+  loanPurpose     String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model MortgageReport {
+  id            String           @id @default(uuid())
+  userId        String
+  borrowerName  String?
+  reportDate    String?
+  loanNumber    String?
+  totalBalance  Float?
+  totalPrincipal Float?
+  totalInterest Float?
+  bank          String?
+  subLoans      MortgageSubLoan[]
+  createdAt     DateTime         @default(now())
+
+  @@index([userId])
+}
+
+model MortgageSubLoan {
+  id              String         @id @default(uuid())
+  reportId        String
+  subLoanNumber   String?
+  loanNumber      String?
+  originalAmount  Float?
+  currentBalance  Float?
+  interestRate    Float?
+  interestType    String?
+  monthlyPayment  Float?
+  endDate         String?
+  report          MortgageReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+model MislakaReport {
+  id         String           @id @default(uuid())
+  userId     String
+  owner      String?
+  ownerName  String?
+  ownerId    String?
+  products   MislakaProduct[]
+  importDate DateTime         @default(now())
+
+  @@index([userId])
+}
+
+model MislakaProduct {
+  id                       String        @id @default(uuid())
+  reportId                 String
+  owner                    String?
+  productType              String?
+  providerName             String?
+  planName                 String?
+  policyNumber             String?
+  status                   String?
+  totalBalance             Float?
+  redemptionValue          Float?
+  monthlyPensionEstimate   Float?
+  projectedRetirementBalance Float?
+  employeeContributionPct  Float?
+  employerContributionPct  Float?
+  severanceContributionPct Float?
+  managementFeeDeposit     Float?
+  managementFeeBalance     Float?
+  investmentTrack          String?
+  returnRate               Float?
+  retirementAge            Int?
+  joinDate                 String?
+  lastUpdate               String?
+  deathCoverage            Float?
+  disabilityCoverage       Float?
+  report                   MislakaReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+model PensionData {
+  id                          String   @id @default(uuid())
+  userId                      String
+  provider                    String?
+  type                        String?
+  currentBalance              Float?
+  monthlyEmployeeContribution Float?
+  monthlyEmployerContribution Float?
+  managementFeePercent        Float?
+  investmentTrack             String?
+  notes                       String?
+  createdAt                   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model BankAccount {
+  id            String            @id @default(uuid())
+  userId        String
+  accountNumber String?
+  bank          String?
+  type          String            @default("personal")
+  owner         String?
+  period        String?
+  transactions  BankTransaction[]
+  importDate    DateTime          @default(now())
+
+  @@unique([userId, accountNumber, period])
+  @@index([userId])
+}
+
+model BankTransaction {
+  id        String      @id @default(uuid())
+  accountId String
+  date      String?
+  code      String?
+  action    String?
+  details   String?
+  reference String?
+  debit     Float?      @default(0)
+  credit    Float?      @default(0)
+  balance   Float?      @default(0)
+  category  String?
+  account   BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+model CreditCardStatement {
+  id           String                   @id @default(uuid())
+  userId       String
+  cardNumber   String?
+  cardName     String?
+  owner        String?
+  period       String?
+  totalCharged Float?
+  transactions CreditCardTransaction[]
+  importDate   DateTime                 @default(now())
+
+  @@unique([userId, cardNumber, period])
+  @@index([userId])
+}
+
+model CreditCardTransaction {
+  id                 String              @id @default(uuid())
+  statementId        String
+  date               String?
+  businessName       String?
+  category           String?
+  amount             Float?
+  currency           String?             @default("ILS")
+  originalAmount     Float?
+  originalCurrency   String?
+  installmentCurrent Int?                @default(0)
+  installmentTotal   Int?                @default(0)
+  totalDealAmount    Float?
+  isInstallment      Boolean             @default(false)
+  statement          CreditCardStatement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  @@index([statementId])
+}
+
+model Goal {
+  id                  String   @id @default(uuid())
+  userId              String
+  name                String
+  template            String?
+  targetAmount        Float
+  currentAmount       Float    @default(0)
+  targetDate          String?
+  priority            String   @default("medium")
+  status              String   @default("active")
+  monthlyContribution Float?   @default(0)
+  linkedAssetIds      String[]
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model RetirementGoals {
+  id            String @id @default(uuid())
+  userId        String @unique
+  pensionTarget Float?
+  lumpSumTarget Float?
+}
+
+model Recommendation {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String?
+  description String?
+  category    String?
+  priority    String?
+  source      String?
+  actionItems String[]
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model FinancialRecord {
+  id          String @id @default(uuid())
+  userId      String
+  date        String?
+  description String?
+  amount      Float?
+  type        String?
+  category    String?
+  source      String?
+
+  @@index([userId])
+}
+
+model UploadedFile {
+  id         String   @id @default(uuid())
+  userId     String
+  name       String?
+  fileType   String?
+  size       Int?
+  uploadedAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model QuizLead {
+  id          String   @id @default(uuid())
+  name        String?
+  phone       String?
+  email       String?
+  score       Int?
+  heatScore   Int?
+  proType     String?
+  answers     Json?
+  assignedTo  String?
+  status      String?  @default("new")
+  createdAt   DateTime @default(now())
+}
+
+model Advisor {
+  id        String   @id @default(uuid())
+  name      String?
+  company   String?
+  phone     String?
+  email     String?
+  license   String?
+  specialty String?
+  rating    Float?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}

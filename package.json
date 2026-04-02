@@ -9,8 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@prisma/client": "^7.6.0",
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.101.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.4.0",
     "jszip": "^3.10.1",
     "lucide-react": "^1.7.0",
     "mammoth": "^1.12.0",
@@ -35,6 +39,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "pdfkit": "^0.18.0",
+    "prisma": "^7.6.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
