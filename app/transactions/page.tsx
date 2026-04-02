@@ -277,7 +277,7 @@ export default function TransactionsPage() {
           <p className="text-xs opacity-60 mt-1">{incomeBreakdown.length} קטגוריות</p>
         </div>
         <div className="bg-gradient-to-br from-red-600 to-red-500 text-white rounded-xl p-5">
-          <p className="text-sm opacity-80">הוצאות (ללא כרט&quot;א)</p>
+          <p className="text-sm opacity-80">הוצאות</p>
           <p className="text-2xl font-bold">{fmtCur(totalExpenses)}</p>
           <p className="text-xs opacity-60 mt-1">{expenseBreakdown.length} קטגוריות{hasCreditCardData ? ` + ${creditCards.length} כרטיסים` : ''}</p>
         </div>
@@ -312,24 +312,11 @@ export default function TransactionsPage() {
 
       {/* CC payments info banner */}
       {ccPaymentsFromBank > 0 && (
-        <div className={`p-4 rounded-xl border mb-6 ${hasCreditCardData ? 'bg-green-50 border-green-200' : 'bg-purple-50 border-purple-200'}`}>
-          {hasCreditCardData ? (
-            <div className="flex items-center gap-2 text-sm text-green-800">
-              <CreditCard size={16} />
-              <span>תשלומי כרטיסי אשראי ({fmtCur(ccPaymentsFromBank)}) לא נספרים כהוצאה - הפירוט מגיע מדוחות הכרטיסים ({creditCards.length} כרטיסים, {creditCards.reduce((s, c) => s + c.transactions.length, 0)} עסקאות)</span>
-            </div>
-          ) : (
-            <div>
-              <div className="flex items-center gap-2 text-sm font-medium text-purple-800 mb-1">
-                <CreditCard size={16} />
-                <span>תשלומים לחברות אשראי: {fmtCur(ccPaymentsFromBank)} (לא נספרים כהוצאה)</span>
-              </div>
-              <p className="text-xs text-purple-700">
-                כדי לראות פירוט הוצאות כרטיס האשראי לפי קטגוריה (מזון, ביגוד, דלק וכו') -
-                <a href="/upload" className="underline font-medium ms-1">העלה דוח כרטיס אשראי מכאל/ישראכרט/מקס</a>
-              </p>
-            </div>
-          )}
+        <div className="p-3 rounded-xl border mb-6 bg-blue-50 border-blue-200">
+          <div className="flex items-center gap-2 text-sm text-blue-800">
+            <CreditCard size={16} />
+            <span>תשלומים לחברות אשראי ({fmtCur(ccPaymentsFromBank)}) לא נספרים כהוצאה כדי למנוע כפילויות{hasCreditCardData ? ` | ${creditCards.length} דוחות כרטיסי אשראי מיובאים` : ''}</span>
+          </div>
         </div>
       )}
 
