@@ -189,6 +189,8 @@ export default function UploadPage() {
               result: singleData,
               zipResult: apiResult.type === 'zip' ? apiResult.data : null,
               processing: false,
+              bankAccountSaved: !!(singleData?.bankAccountData?.transactions?.length),
+              creditCardSaved: !!(singleData?.creditCardData?.transactions?.length),
             } : f));
             jobMapRef.current.delete(fr.id);
           } else if (data.status === 'error') {
@@ -264,7 +266,7 @@ export default function UploadPage() {
       }
       // Bank account data - auto-save
       const bankData = fr.result?.bankAccountData;
-      if (bankData && bankData.transactions.length > 0 && !savedBankAccountIds.current.has(fr.id)) {
+      if (bankData && bankData.transactions.length > 0 && !savedBankAccountIds.current.has(fr.id) && !fr.bankAccountSaved) {
         saveBankAccount({
           id: fr.id,
           accountNumber: bankData.accountNumber,
@@ -276,11 +278,10 @@ export default function UploadPage() {
           importDate: new Date().toISOString(),
         });
         savedBankAccountIds.current.add(fr.id);
-        setFileResults(prev => prev.map(f => f.id === fr.id ? { ...f, bankAccountSaved: true } : f));
       }
       // Credit card data - auto-save
       const ccData = fr.result?.creditCardData;
-      if (ccData && ccData.transactions.length > 0 && !savedCreditCardIds.current.has(fr.id)) {
+      if (ccData && ccData.transactions.length > 0 && !savedCreditCardIds.current.has(fr.id) && !fr.creditCardSaved) {
         saveCreditCard({
           id: fr.id,
           cardNumber: ccData.cardNumber,
@@ -292,7 +293,6 @@ export default function UploadPage() {
           importDate: new Date().toISOString(),
         });
         savedCreditCardIds.current.add(fr.id);
-        setFileResults(prev => prev.map(f => f.id === fr.id ? { ...f, creditCardSaved: true } : f));
       }
     }
   }, [fileResults]);
@@ -337,11 +337,14 @@ export default function UploadPage() {
         if (data.status === 'done') {
           // Fast file (Excel/CSV) - result came back immediately
           const apiResult: ApiResponse = data.result;
+          const singleData = apiResult.type === 'single' ? apiResult.data : null;
           setFileResults(prev => prev.map(f => f.id === placeholderId ? {
             ...f,
-            result: apiResult.type === 'single' ? apiResult.data : null,
+            result: singleData,
             zipResult: apiResult.type === 'zip' ? apiResult.data : null,
             processing: false,
+            bankAccountSaved: !!(singleData?.bankAccountData?.transactions?.length),
+            creditCardSaved: !!(singleData?.creditCardData?.transactions?.length),
           } : f));
         } else if (data.status === 'processing') {
           // Slow file (PDF/Word) - store jobId for polling
