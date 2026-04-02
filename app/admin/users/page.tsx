@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { dbGetAllUsers, dbGetUserDetail } from '@/lib/admin-users-actions';
+import { dbGetUserDetail } from '@/lib/admin-users-actions';
 import { formatCurrency } from '@/lib/utils';
 import { Users, ChevronDown, ChevronUp, Wallet, CreditCard, Target, Building, Shield, TrendingDown, RefreshCw } from 'lucide-react';
 
@@ -29,8 +29,13 @@ export default function AdminUsersPage() {
 
   const loadUsers = async () => {
     setLoading(true);
-    const data = await dbGetAllUsers();
-    setUsers(data as any);
+    try {
+      const resp = await fetch('/api/admin/users');
+      const data = await resp.json();
+      setUsers(data.users || []);
+    } catch {
+      setUsers([]);
+    }
     setLoading(false);
   };
 
