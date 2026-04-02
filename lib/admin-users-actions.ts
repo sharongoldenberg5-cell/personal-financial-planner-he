@@ -11,12 +11,17 @@ export async function dbGetAllUsers() {
   const profiles = await prisma.profile.findMany();
   const profileMap = new Map(profiles.map(p => [p.userId, p]));
 
-  // Get auth users via raw SQL
+  // Get auth users via direct pg connection (pooler doesn't allow auth schema access)
   let authUsers: { id: string; email: string; created_at: Date; last_sign_in_at: Date | null }[] = [];
   try {
-    authUsers = await rawClient.$queryRaw`SELECT id, email, created_at, last_sign_in_at FROM auth.users ORDER BY created_at DESC`;
-  } catch {
-    // Fallback: use profiles only
+    const { Client } = require('pg');
+    const pgClient = new Client({ connectionString: process.env.DIRECT_URL });
+    await pgClient.connect();
+    const result = await pgClient.query('SELECT id, email, created_at, last_sign_in_at FROM auth.users ORDER BY created_at DESC');
+    authUsers = result.rows;
+    await pgClient.end();
+  } catch (e) {
+    console.error('Failed to query auth.users:', e);
   }
   await rawClient.$disconnect();
 
