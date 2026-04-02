@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, UserCog, Settings, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, UserCog, Settings, Shield, UserCheck } from 'lucide-react';
 
 const adminNav = [
   { key: 'dashboard', href: '/admin', icon: LayoutDashboard, label: 'דשבורד' },
   { key: 'leads', href: '/admin/leads', icon: Users, label: 'לידים' },
+  { key: 'users', href: '/admin/users', icon: UserCheck, label: 'משתמשים' },
   { key: 'advisors', href: '/admin/advisors', icon: UserCog, label: 'יועצים' },
   { key: 'settings', href: '/admin/settings', icon: Settings, label: 'הגדרות' },
 ];
