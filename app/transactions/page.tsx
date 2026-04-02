@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/translations';
-import { getBankAccounts, clearAllBankAccounts } from '@/lib/storage';
+import { getBankAccounts, clearAllBankAccounts, getCreditCards, clearAllCreditCards } from '@/lib/storage';
 import { formatCurrency } from '@/lib/utils';
-import type { BankAccount, BankTransaction } from '@/lib/types';
+import type { BankAccount, BankTransaction, CreditCardStatement } from '@/lib/types';
 import {
   RotateCcw, TrendingUp, TrendingDown, CreditCard, Home, Shield,
   PiggyBank, Wallet, ArrowRightLeft, BarChart3, AlertTriangle,
@@ -72,6 +72,7 @@ const PIE_COLORS = ['#dc2626', '#7c3aed', '#d97706', '#0891b2', '#ea580c', '#647
 export default function TransactionsPage() {
   const { t, locale } = useTranslation();
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  const [creditCards, setCreditCards] = useState<CreditCardStatement[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -79,6 +80,7 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     setAccounts(getBankAccounts());
+    setCreditCards(getCreditCards());
   }, []);
 
   const fmtCur = (n: number) => formatCurrency(n, locale === 'he' ? 'he-IL' : 'en-IL');
@@ -88,7 +90,27 @@ export default function TransactionsPage() {
     accounts.filter(a => a.id === selectedAccount);
   const filteredByType = selectedType === 'all' ? filteredAccounts :
     filteredAccounts.filter(a => a.type === selectedType);
-  const allTransactions = filteredByType.flatMap(a => a.transactions);
+  // Bank transactions
+  const bankTransactions = filteredByType.flatMap(a => a.transactions);
+
+  // Credit card transactions converted to common format
+  const ccTransactions: BankTransaction[] = creditCards.flatMap(cc =>
+    cc.transactions
+      .filter(t => t.category !== 'כרטיס-אשראי')
+      .map(t => ({
+        date: t.date,
+        code: '',
+        action: t.businessName,
+        details: t.isInstallment ? `תשלום ${t.installmentCurrent}/${t.installmentTotal}` : '',
+        reference: `CC:${cc.cardName}`,
+        debit: t.amount,
+        credit: 0,
+        balance: 0,
+        category: t.category,
+      }))
+  );
+
+  const allTransactions = [...bankTransactions, ...ccTransactions];
 
   // Totals
   const totalIncome = allTransactions.filter(t => t.credit > 0).reduce((s, t) => s + t.credit, 0);
@@ -152,12 +174,11 @@ export default function TransactionsPage() {
     insights.push({ type: 'warning', text: `ההוצאות (${fmtCur(totalExpenses)}) גבוהות מההכנסות (${fmtCur(totalIncome)}) - מינוס של ${fmtCur(totalExpenses - totalIncome)}` });
   }
 
-  const ccTotal = expensesByCategory['כרטיס-אשראי']?.amount || 0;
-  if (ccTotal > 0 && totalExpenses > 0) {
-    const ccPct = (ccTotal / totalExpenses) * 100;
-    if (ccPct > 40) {
-      insights.push({ type: 'warning', text: `${ccPct.toFixed(0)}% מההוצאות דרך כרטיסי אשראי (${fmtCur(ccTotal)}) - מומלץ לבדוק פירוט` });
-    }
+  // Installment warning from credit cards
+  const installmentTxs = creditCards.flatMap(cc => cc.transactions.filter(t => t.isInstallment));
+  if (installmentTxs.length > 0) {
+    const instTotal = installmentTxs.reduce((s, t) => s + t.totalDealAmount, 0);
+    insights.push({ type: 'warning', text: `${installmentTxs.length} עסקאות בתשלומים | חוב כולל: ${fmtCur(instTotal)} - עסקאות בתשלומים מייצרות חוב נסתר` });
   }
 
   const housingTotal = (expensesByCategory['דיור-משכנתא']?.amount || 0) + (expensesByCategory['דיור-שכירות']?.amount || 0);
@@ -196,7 +217,7 @@ export default function TransactionsPage() {
     }
   }
 
-  if (accounts.length === 0) {
+  if (accounts.length === 0 && creditCards.length === 0) {
     return (
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">{t('nav.transactions')}</h1>
@@ -215,7 +236,7 @@ export default function TransactionsPage() {
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">{t('nav.transactions')}</h1>
-        <button onClick={() => { clearAllBankAccounts(); setAccounts([]); }}
+        <button onClick={() => { clearAllBankAccounts(); clearAllCreditCards(); setAccounts([]); setCreditCards([]); }}
           className="flex items-center gap-1.5 px-3 py-2 text-sm text-text-light hover:text-danger transition-colors">
           <RotateCcw size={14} /> {t('common.reset')}
         </button>
@@ -345,8 +366,15 @@ export default function TransactionsPage() {
             <div>
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={expensePieData} cx="50%" cy="50%" outerRadius={100} innerRadius={45} dataKey="value"
-                    label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}>
+                  <Pie data={expensePieData} cx="50%" cy="50%" outerRadius={85} innerRadius={40} dataKey="value"
+                    label={({ name, percent, x, y, midAngle }: any) => { // eslint-disable-line
+                      const RADIAN = Math.PI / 180;
+                      const nx = (x || 0) + Math.cos(-((midAngle || 0)) * RADIAN) * 8;
+                      const ny = (y || 0) + Math.sin(-((midAngle || 0)) * RADIAN) * 8;
+                      return <text x={nx} y={ny} textAnchor={nx > ((x || 0) - 5) ? 'start' : 'end'} dominantBaseline="central" fontSize={10} fill="#374151">{`${name || ''} ${(((percent || 0)) * 100).toFixed(0)}%`}</text>;
+                    }}
+                    labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
+                  >
                     {expensePieData.map((d, i) => <Cell key={i} fill={d.color || PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(val) => fmtCur(Number(val))} />

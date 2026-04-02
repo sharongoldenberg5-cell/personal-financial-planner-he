@@ -10,7 +10,8 @@ import { Plus, Pencil, Trash2, X, Target, Zap, Clock, Rocket, RotateCcw, AlertTr
 const PENSION_TYPES = ['pension', 'managers-insurance', 'provident'];
 
 const templates: GoalTemplate[] = [
-  'education-fund', 'home-purchase', 'emergency-fund', 'travel', 'car', 'custom',
+  'education-fund', 'home-purchase', 'emergency-fund', 'wedding', 'children-education',
+  'help-apartment', 'bar-bat-mitzvah', 'renovation', 'property-purchase', 'travel', 'car', 'custom',
 ];
 const priorities: GoalPriority[] = ['high', 'medium', 'low'];
 const statuses: GoalStatus[] = ['active', 'completed', 'paused'];

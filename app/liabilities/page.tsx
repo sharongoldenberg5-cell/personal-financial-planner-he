@@ -11,9 +11,11 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 const COLORS = ['#dc2626', '#d97706', '#7c3aed', '#64748b'];
 const liabilityCategories: LiabilityCategory[] = ['mortgage', 'loan', 'credit-card', 'other'];
 
+const loanPurposes = ['דיור', 'רכב', 'לימודים', 'שיפוץ', 'עסקי', 'רפואי', 'חתונה', 'אחר'];
+
 const emptyLiability: Omit<Liability, 'id' | 'createdAt' | 'updatedAt'> = {
   name: '', category: 'mortgage', originalAmount: 0, currentBalance: 0,
-  interestRate: 0, monthlyPayment: 0, lender: '', startDate: '', endDate: '', notes: '',
+  interestRate: 0, monthlyPayment: 0, lender: '', startDate: '', endDate: '', loanPurpose: '', notes: '',
 };
 
 export default function LiabilitiesPage() {
@@ -227,6 +229,16 @@ export default function LiabilitiesPage() {
                     className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
                 </div>
               </div>
+              {form.category === 'loan' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">מטרת ההלוואה</label>
+                  <select value={form.loanPurpose || ''} onChange={e => setForm(p => ({ ...p, loanPurpose: e.target.value }))}
+                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-surface">
+                    <option value="">בחר מטרה</option>
+                    {loanPurposes.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1">{t('liabilities.notes')}</label>
                 <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}

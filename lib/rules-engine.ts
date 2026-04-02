@@ -269,6 +269,10 @@ export function generateRuleBasedRecommendations(input: AnalysisInput): Recommen
     if (isOffTrack) {
       actionItems.push(`הגדל הפקדה חודשית ל-${Math.ceil(requiredMonthly).toLocaleString()} ₪, או הארך תאריך יעד, או התאם סכום`);
     }
+    // Add unlinked-goal tip inline
+    if ((!goal.linkedAssetIds || goal.linkedAssetIds.length === 0) && goal.targetAmount > 10000) {
+      actionItems.push('⚠️ אין נכס מקושר ליעד - קשר נכס רלוונטי או פתח חשבון חיסכון ייעודי');
+    }
     actionItems.push(`מסלול השקעה מומלץ: ${recommendedTrack} - ${recommendedStocks}`);
     if (yearsLeft <= 2) {
       actionItems.push('טווח קצר - הימנע ממניות, העדף אג"ח ופיקדונות');
@@ -663,31 +667,13 @@ export function generateRuleBasedRecommendations(input: AnalysisInput): Recommen
   }
 
   // ==================================================================
-  // SECTION 8: GOAL-ASSET LINKAGE
+  // SECTION 8: GOAL-ASSET LINKAGE (funding adequacy only - unlinked merged into goal recs above)
   // ==================================================================
 
   for (const goal of goals) {
     if (goal.status !== 'active') continue;
 
-    // Unlinked goals
-    if (!goal.linkedAssetIds || goal.linkedAssetIds.length === 0) {
-      if (goal.targetAmount > 10000) {
-        recommendations.push({
-          id: generateId(),
-          title: `יעד "${goal.name}" ללא מימון מקושר`,
-          description: `ליעד ${goal.name} (${goal.targetAmount.toLocaleString()} ₪) אין נכסים מקושרים. קשר נכס ליעד כדי לעקוב אחר ההתקדמות.`,
-          category: 'savings',
-          priority: 'medium',
-          source: 'rules',
-          actionItems: [
-            'עבור לטאב יעדים וקשר נכס רלוונטי ליעד',
-            'אם אין נכס מתאים - פתח חשבון חיסכון ייעודי',
-            'הגדר הפקדה חודשית קבועה לנכס המקושר',
-          ],
-          createdAt: now,
-        });
-      }
-    } else {
+    if (goal.linkedAssetIds && goal.linkedAssetIds.length > 0) {
       // Goal funding adequacy
       const linkedAssets = goal.linkedAssetIds.map(id => assets.find(a => a.id === id)).filter(Boolean);
       const linkedValue = linkedAssets.reduce((s, a) => s + (a?.value || 0), 0);

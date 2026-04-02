@@ -505,7 +505,11 @@ export default function UploadPage() {
   const pendingLiability = fileResults.filter(f => !f.liabilityCreated && (f.result?.mortgageReport || getRecords(f).length > 0)).length;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto"
+      onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+      onDragLeave={e => { if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false); }}
+      onDrop={handleDrop}
+    >
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">{t('upload.title')}</h1>
         {fileResults.length > 0 && (
@@ -517,9 +521,6 @@ export default function UploadPage() {
 
       {/* Drop Zone */}
       <div
-        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={handleDrop}
         className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors ${
           isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
         }`}
@@ -647,22 +648,10 @@ export default function UploadPage() {
         </div>
       )}
 
-      {/* Bulk Actions */}
+      {/* File count */}
       {fileResults.length > 1 && (
-        <div className="mt-6 flex flex-wrap gap-3 p-4 bg-surface rounded-xl border border-border">
-          <span className="text-sm font-medium self-center">{fileResults.length} {t('upload.filesUploaded')}:</span>
-          {pendingImport > 0 && (
-            <button onClick={handleImportAll}
-              className="flex items-center gap-2 px-4 py-2 bg-success text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
-              <CheckCircle size={16} /> {t('upload.importAll')} ({pendingImport})
-            </button>
-          )}
-          {pendingLiability > 0 && (
-            <button onClick={handleCreateAllLiabilities}
-              className="flex items-center gap-2 px-4 py-2 bg-danger text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
-              <TrendingDown size={16} /> {t('upload.createAllLiabilities')} ({pendingLiability})
-            </button>
-          )}
+        <div className="mt-6 p-3 bg-surface rounded-xl border border-border text-center">
+          <span className="text-sm font-medium">{fileResults.length} {t('upload.filesUploaded')}</span>
         </div>
       )}
 
@@ -992,28 +981,14 @@ export default function UploadPage() {
                       </div>
                     )}
 
-                    {/* Action Buttons */}
-                    {(records.length > 0 || mortgage) && !bankData && !fr.result?.creditCardData && (
-                      <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
-                        {records.length > 0 && !fr.imported && (
-                          <button onClick={() => handleImport(fr)}
-                            className="flex items-center gap-2 px-4 py-2 bg-success text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
-                            <CheckCircle size={16} />
-                            {t('upload.confirmImport')} ({totalRecords})
-                          </button>
-                        )}
-                        {!fr.assetCreated && !mortgage && !hasMislaka && (
-                          <button onClick={() => handleCreateAsset(fr)}
-                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm">
-                            <Wallet size={16} /> {t('upload.createAsset')}
-                          </button>
-                        )}
-                        {!fr.liabilityCreated && !hasMislaka && (
-                          <button onClick={() => handleCreateLiability(fr)}
-                            className="flex items-center gap-2 px-4 py-2 bg-danger text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
-                            <TrendingDown size={16} /> {t('upload.createLiability')}
-                          </button>
-                        )}
+                    {/* Import button for generic files */}
+                    {records.length > 0 && !fr.imported && !mortgage && !bankData && !fr.result?.creditCardData && !hasMislaka && (
+                      <div className="pt-2 border-t border-border">
+                        <button onClick={() => handleImport(fr)}
+                          className="flex items-center gap-2 px-4 py-2 bg-success text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                          <CheckCircle size={16} />
+                          {t('upload.confirmImport')} ({totalRecords})
+                        </button>
                       </div>
                     )}
                   </div>

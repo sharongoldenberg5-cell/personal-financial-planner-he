@@ -94,6 +94,7 @@ export interface Liability {
   lender: string;
   startDate: string;
   endDate: string;
+  loanPurpose?: string;
   notes: string;
   createdAt: string;
   updatedAt: string;
@@ -230,6 +231,12 @@ export type GoalTemplate =
   | 'emergency-fund'
   | 'travel'
   | 'car'
+  | 'wedding'
+  | 'children-education'
+  | 'help-apartment'
+  | 'bar-bat-mitzvah'
+  | 'renovation'
+  | 'property-purchase'
   | 'custom';
 
 export interface Goal {

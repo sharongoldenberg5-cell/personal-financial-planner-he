@@ -106,8 +106,15 @@ export default function AssetsPage() {
             <h2 className="text-lg font-semibold mb-4">{t('dashboard.assetDistribution')}</h2>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie data={chartData} cx="50%" cy="50%" outerRadius={95} dataKey="value"
-                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}>
+                <Pie data={chartData} cx="50%" cy="50%" outerRadius={80} dataKey="value"
+                  label={({ name, percent, x, y, midAngle }: any) => { // eslint-disable-line
+                    const RADIAN = Math.PI / 180;
+                    const nx = (x || 0) + Math.cos(-((midAngle || 0)) * RADIAN) * 10;
+                    const ny = (y || 0) + Math.sin(-((midAngle || 0)) * RADIAN) * 10;
+                    return <text x={nx} y={ny} textAnchor={nx > ((x || 0) - 5) ? 'start' : 'end'} dominantBaseline="central" fontSize={11} fill="#374151">{`${name || ''} ${(((percent || 0)) * 100).toFixed(0)}%`}</text>;
+                  }}
+                  labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
+                >
                   {chartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={(val) => fmtCur(Number(val))} />

@@ -22,7 +22,7 @@
     "liabilities": "Liabilities",
     "pension": "Your Pension",
     "mortgage": "Mortgage Analysis",
-    "transactions": "Bank Transactions",
+    "transactions": "Bank & Credit Cards",
     "upload": "Upload Files",
     "goals": "Goals",
     "recommendations": "Recommendations"
@@ -287,6 +287,12 @@
       "emergency-fund": "Emergency Fund",
       "travel": "Travel",
       "car": "Car",
+      "wedding": "Wedding",
+      "children-education": "Children Education",
+      "help-apartment": "Help Child Buy Apartment",
+      "bar-bat-mitzvah": "Bar/Bat Mitzvah",
+      "renovation": "Home Renovation",
+      "property-purchase": "Property Purchase",
       "custom": "Custom"
     },
     "targetAmount": "Target Amount",

@@ -22,7 +22,7 @@
     "liabilities": "התחייבויות",
     "pension": "הפנסיה שלך",
     "mortgage": "ניתוח משכנתא",
-    "transactions": "תנועות בנק",
+    "transactions": "בנק וכרטיסי אשראי",
     "upload": "העלאת קבצים",
     "goals": "יעדים",
     "recommendations": "המלצות"
@@ -287,6 +287,12 @@
       "emergency-fund": "קרן חירום",
       "travel": "טיול",
       "car": "רכב",
+      "wedding": "חתונה",
+      "children-education": "לימודי ילדים",
+      "help-apartment": "עזרה ברכישת דירה לילדים",
+      "bar-bat-mitzvah": "בר/בת מצווה",
+      "renovation": "שיפוץ דירה",
+      "property-purchase": "רכישת נכס",
       "custom": "מותאם אישית"
     },
     "targetAmount": "סכום יעד",
