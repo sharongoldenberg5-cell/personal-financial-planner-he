@@ -7,6 +7,7 @@ import { Users, ChevronDown, ChevronUp, Wallet, CreditCard, Target, Building, Sh
 
 interface UserSummary {
   userId: string;
+  email: string;
   firstName: string | null;
   lastName: string | null;
   age: number | null;
@@ -14,6 +15,8 @@ interface UserSummary {
   monthlyIncome: number | null;
   monthlyExpenses: number | null;
   createdAt: Date;
+  lastSignIn: Date | null;
+  hasProfile: boolean;
   assetCount: number;
   liabilityCount: number;
   goalCount: number;
@@ -77,16 +80,18 @@ export default function AdminUsersPage() {
                 onClick={() => toggleUser(user.userId)}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                    {(user.firstName || '?')[0]}
+                  <div className={`w-10 h-10 ${user.hasProfile ? 'bg-blue-600' : 'bg-gray-600'} rounded-full flex items-center justify-center text-white font-bold`}>
+                    {(user.firstName || user.email?.[0] || '?')[0].toUpperCase()}
                   </div>
                   <div>
                     <p className="font-medium text-white">
-                      {user.firstName} {user.lastName}
+                      {user.firstName ? `${user.firstName} ${user.lastName || ''}` : user.email}
                       {user.age ? ` (${user.age})` : ''}
+                      {!user.hasProfile && <span className="text-xs bg-yellow-600/30 text-yellow-400 px-1.5 py-0.5 rounded ms-2">ללא פרופיל</span>}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {user.maritalStatus === 'married' ? 'נשוי/אה' : user.maritalStatus === 'single' ? 'רווק/ה' : user.maritalStatus || ''}
+                      {user.email}
+                      {user.lastSignIn ? ` | כניסה אחרונה: ${new Date(user.lastSignIn).toLocaleDateString('he-IL')} ${new Date(user.lastSignIn).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}` : ''}
                       {user.monthlyIncome ? ` | הכנסה: ${formatCurrency(user.monthlyIncome)}` : ''}
                     </p>
                   </div>

@@ -3,33 +3,54 @@
 import { prisma } from './prisma';
 
 export async function dbGetAllUsers() {
-  // Get all profiles with summary data
-  const profiles = await prisma.profile.findMany({
-    orderBy: { createdAt: 'desc' },
-  });
+  // Get all users from auth.users table (via raw query since Prisma doesn't manage auth schema)
+  const { PrismaClient } = require('@prisma/client');
+  const rawClient = new PrismaClient();
 
-  // For each user, get counts
+  // Get profiles
+  const profiles = await prisma.profile.findMany();
+  const profileMap = new Map(profiles.map(p => [p.userId, p]));
+
+  // Get auth users via raw SQL
+  let authUsers: { id: string; email: string; created_at: Date; last_sign_in_at: Date | null }[] = [];
+  try {
+    authUsers = await rawClient.$queryRaw`SELECT id, email, created_at, last_sign_in_at FROM auth.users ORDER BY created_at DESC`;
+  } catch {
+    // Fallback: use profiles only
+  }
+  await rawClient.$disconnect();
+
+  // Build user list from auth users (includes those without profile)
+  const userIds = authUsers.length > 0
+    ? authUsers.map(u => u.id)
+    : profiles.map(p => p.userId);
+
   const userSummaries = await Promise.all(
-    profiles.map(async (p) => {
+    (authUsers.length > 0 ? authUsers : profiles.map(p => ({ id: p.userId, email: '', created_at: p.createdAt, last_sign_in_at: null }))).map(async (authUser) => {
+      const profile = profileMap.get(authUser.id);
+
       const [assetCount, liabilityCount, goalCount, bankAccountCount, creditCardCount, mortgageCount, mislakaCount] = await Promise.all([
-        prisma.asset.count({ where: { userId: p.userId } }),
-        prisma.liability.count({ where: { userId: p.userId } }),
-        prisma.goal.count({ where: { userId: p.userId } }),
-        prisma.bankAccount.count({ where: { userId: p.userId } }),
-        prisma.creditCardStatement.count({ where: { userId: p.userId } }),
-        prisma.mortgageReport.count({ where: { userId: p.userId } }),
-        prisma.mislakaReport.count({ where: { userId: p.userId } }),
+        prisma.asset.count({ where: { userId: authUser.id } }),
+        prisma.liability.count({ where: { userId: authUser.id } }),
+        prisma.goal.count({ where: { userId: authUser.id } }),
+        prisma.bankAccount.count({ where: { userId: authUser.id } }),
+        prisma.creditCardStatement.count({ where: { userId: authUser.id } }),
+        prisma.mortgageReport.count({ where: { userId: authUser.id } }),
+        prisma.mislakaReport.count({ where: { userId: authUser.id } }),
       ]);
 
       return {
-        userId: p.userId,
-        firstName: p.firstName,
-        lastName: p.lastName,
-        age: p.age,
-        maritalStatus: p.maritalStatus,
-        monthlyIncome: p.monthlyIncome,
-        monthlyExpenses: p.monthlyExpenses,
-        createdAt: p.createdAt,
+        userId: authUser.id,
+        email: authUser.email,
+        firstName: profile?.firstName || null,
+        lastName: profile?.lastName || null,
+        age: profile?.age || null,
+        maritalStatus: profile?.maritalStatus || null,
+        monthlyIncome: profile?.monthlyIncome || null,
+        monthlyExpenses: profile?.monthlyExpenses || null,
+        createdAt: authUser.created_at,
+        lastSignIn: authUser.last_sign_in_at,
+        hasProfile: !!profile,
         assetCount,
         liabilityCount,
         goalCount,
