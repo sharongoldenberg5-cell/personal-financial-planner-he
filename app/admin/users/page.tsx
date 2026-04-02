@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { dbGetUserDetail } from '@/lib/admin-users-actions';
+// User detail fetched via API route
 import { formatCurrency } from '@/lib/utils';
 import { Users, ChevronDown, ChevronUp, Wallet, CreditCard, Target, Building, Shield, TrendingDown, RefreshCw } from 'lucide-react';
 
@@ -46,7 +46,8 @@ export default function AdminUsersPage() {
     }
     setExpandedUser(userId);
     if (!userDetail[userId]) {
-      const detail = await dbGetUserDetail(userId);
+      const resp = await fetch(`/api/admin/users/${userId}`);
+      const detail = await resp.json();
       setUserDetail(prev => ({ ...prev, [userId]: detail }));
     }
   };
