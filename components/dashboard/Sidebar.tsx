@@ -19,7 +19,10 @@ import {
   Menu,
   X,
   ArrowLeftRight,
+  LogOut,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase-client';
+import { useDataSync } from '@/lib/use-sync';
 
 const navItems = [
   { key: 'dashboard', href: '/', icon: LayoutDashboard },
@@ -38,6 +41,16 @@ export function Sidebar() {
   const pathname = usePathname();
   const { t, locale, setLocale } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Sync localStorage ↔ DB
+  useDataSync();
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    localStorage.removeItem('financial-planner-last-sync');
+    window.location.href = '/auth/login';
+  };
 
   const sidebarContent = (
     <>
@@ -71,13 +84,20 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border space-y-1">
         <button
           onClick={() => setLocale(locale === 'he' ? 'en' : 'he')}
           className="flex items-center gap-2 px-4 py-2 w-full rounded-lg text-sm text-text-light hover:bg-primary/10 hover:text-primary transition-colors"
         >
           <Globe size={18} />
           <span>{locale === 'he' ? 'English' : 'עברית'}</span>
+        </button>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-2 w-full rounded-lg text-sm text-text-light hover:bg-red-50 hover:text-danger transition-colors"
+        >
+          <LogOut size={18} />
+          <span>{locale === 'he' ? 'התנתק' : 'Logout'}</span>
         </button>
       </div>
     </>

@@ -1,8 +1,14 @@
 'use client';
 
 import type { AppState, UserProfile, Asset, Liability, MortgageReport, MislakaReport, RetirementGoals, BankAccount, CreditCardStatement, PensionData, FinancialRecord, Goal, Recommendation, UploadedFile } from './types';
+import { dbSaveProfile, dbSaveAsset, dbDeleteAsset, dbSaveLiability, dbDeleteLiability, dbSaveGoal, dbDeleteGoal, dbSaveRetirementGoals, dbSaveRecommendations, dbSaveMortgageReport, dbSaveMislakaReport, dbSaveBankAccount, dbSaveCreditCard } from './db-actions';
 
 const STORAGE_KEY = 'financial-planner-data';
+
+// Background sync to DB (fire and forget)
+function syncToDb(fn: () => Promise<unknown>) {
+  fn().catch(e => console.warn('[DB Sync]', e));
+}
 
 function getDefaultState(): AppState {
   return {
@@ -47,6 +53,7 @@ export function saveProfile(profile: UserProfile): void {
   const state = loadState();
   state.profile = profile;
   saveState(state);
+  syncToDb(() => dbSaveProfile(profile as any));
 }
 
 export function getProfile(): UserProfile | null {
@@ -61,18 +68,16 @@ export function getAssets(): Asset[] {
 export function saveAsset(asset: Asset): void {
   const state = loadState();
   const idx = state.assets.findIndex(a => a.id === asset.id);
-  if (idx >= 0) {
-    state.assets[idx] = asset;
-  } else {
-    state.assets.push(asset);
-  }
+  if (idx >= 0) { state.assets[idx] = asset; } else { state.assets.push(asset); }
   saveState(state);
+  syncToDb(() => dbSaveAsset(asset as any));
 }
 
 export function deleteAsset(id: string): void {
   const state = loadState();
   state.assets = state.assets.filter(a => a.id !== id);
   saveState(state);
+  syncToDb(() => dbDeleteAsset(id));
 }
 
 // Liabilities
@@ -98,12 +103,14 @@ export function saveLiability(liability: Liability): void {
     }
   }
   saveState(state);
+  syncToDb(() => dbSaveLiability(liability as any));
 }
 
 export function deleteLiability(id: string): void {
   const state = loadState();
   state.liabilities = (state.liabilities || []).filter(l => l.id !== id);
   saveState(state);
+  syncToDb(() => dbDeleteLiability(id));
 }
 
 export function calculateTotalLiabilities(): number {
@@ -131,6 +138,7 @@ export function saveMortgageReport(report: MortgageReport): void {
     state.mortgageReports.push(r);
   }
   saveState(state);
+  syncToDb(() => dbSaveMortgageReport(r as any));
 }
 
 export function deleteMortgageReport(id: string): void {
@@ -156,6 +164,7 @@ export function saveMislakaReport(report: MislakaReport): void {
     state.mislakaReports.push(r);
   }
   saveState(state);
+  syncToDb(() => dbSaveMislakaReport(r as any));
 }
 
 export function deleteMislakaReport(id: string): void {
@@ -218,6 +227,7 @@ export function saveRetirementGoals(goals: RetirementGoals): void {
   const state = loadState();
   state.retirementGoals = goals;
   saveState(state);
+  syncToDb(() => dbSaveRetirementGoals(goals));
 }
 
 // Goals
@@ -228,18 +238,16 @@ export function getGoals(): Goal[] {
 export function saveGoal(goal: Goal): void {
   const state = loadState();
   const idx = state.goals.findIndex(g => g.id === goal.id);
-  if (idx >= 0) {
-    state.goals[idx] = goal;
-  } else {
-    state.goals.push(goal);
-  }
+  if (idx >= 0) { state.goals[idx] = goal; } else { state.goals.push(goal); }
   saveState(state);
+  syncToDb(() => dbSaveGoal(goal as any));
 }
 
 export function deleteGoal(id: string): void {
   const state = loadState();
   state.goals = state.goals.filter(g => g.id !== id);
   saveState(state);
+  syncToDb(() => dbDeleteGoal(id));
 }
 
 // Recommendations
@@ -251,6 +259,7 @@ export function saveRecommendations(recs: Recommendation[]): void {
   const state = loadState();
   state.recommendations = recs;
   saveState(state);
+  syncToDb(() => dbSaveRecommendations(recs as any));
 }
 
 // Uploaded Files
@@ -273,12 +282,9 @@ export function saveBankAccount(account: BankAccount): void {
   const state = loadState();
   if (!state.bankAccounts) state.bankAccounts = [];
   const dupeIdx = state.bankAccounts.findIndex(a => a.accountNumber === account.accountNumber && a.period === account.period);
-  if (dupeIdx >= 0) {
-    state.bankAccounts[dupeIdx] = account;
-  } else {
-    state.bankAccounts.push(account);
-  }
+  if (dupeIdx >= 0) { state.bankAccounts[dupeIdx] = account; } else { state.bankAccounts.push(account); }
   saveState(state);
+  syncToDb(() => dbSaveBankAccount(account as any));
 }
 
 export function clearAllBankAccounts(): void {
@@ -295,12 +301,9 @@ export function saveCreditCard(card: CreditCardStatement): void {
   const state = loadState();
   if (!state.creditCards) state.creditCards = [];
   const dupeIdx = state.creditCards.findIndex(c => c.cardNumber === card.cardNumber && c.period === card.period);
-  if (dupeIdx >= 0) {
-    state.creditCards[dupeIdx] = card;
-  } else {
-    state.creditCards.push(card);
-  }
+  if (dupeIdx >= 0) { state.creditCards[dupeIdx] = card; } else { state.creditCards.push(card); }
   saveState(state);
+  syncToDb(() => dbSaveCreditCard(card as any));
 }
 
 export function clearAllCreditCards(): void {
