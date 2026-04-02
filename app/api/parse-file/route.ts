@@ -690,22 +690,24 @@ function parseCreditCardStatement(rawRows: unknown[][], fileName: string): Parse
 
 function categorizeCreditCardBusiness(name: string): string {
   const text = name.toLowerCase();
-  // מזון וסופרים
-  if (text.includes('שופרסל') || text.includes('רמי לוי') || text.includes('ויקטורי') || text.includes('אושר עד') || text.includes('יוחננוף') || text.includes('חצי חינם') || text.includes('טיב טעם') || text.includes('פרש מרקט') || text.includes('סופר') || text.includes('מכולת') || text.includes('סטופמרקט') || text.includes('פירות') || text.includes('ירקות') || text.includes('דהן פירות') || text.includes('יוניברס') || text.includes('מעדני') || text.includes('בשר') || text.includes('מאפי')) return 'מזון';
+  // מזון וסופרים (כולל חיות מחמד - only 4 friends)
+  if (text.includes('שופרסל') || text.includes('רמי לוי') || text.includes('ויקטורי') || text.includes('אושר עד') || text.includes('יוחננוף') || text.includes('חצי חינם') || text.includes('טיב טעם') || text.includes('פרש מרקט') || text.includes('סופר פארם') || text.includes('מכולת') || text.includes('סטופמרקט') || text.includes('פירות') || text.includes('ירקות') || text.includes('דהן פירות') || text.includes('יוניברס') || text.includes('מעדני') || text.includes('בשר') || text.includes('מאפי') || text.includes('פעמית') || text.includes('only 4') || text.includes('סטור')) return 'מזון';
+  // דיור - חשמל מים גז ארנונה ועד בית
+  if (text.includes('חשמל') || text.includes('חח"י') || text.includes('energy') || text.includes('בזק energy') || text.includes('מים') || text.includes('גז') || text.includes('ארנונה') || text.includes('ועד בית') || text.includes('שטראוס') || text.includes('תמי 4')) return 'דיור-אנרגיה';
   // דלק ורכב
   if (text.includes('סונול') || text.includes('פז') || text.includes('דור אלון') || text.includes('דלק') || text.includes('ten') || text.includes('yellow') || text.includes('חרמש') || text.includes('מנטה')) return 'רכב-דלק';
   // ביטוח
   if (text.includes('ביטוח') || text.includes('הראל') || text.includes('מנורה') || text.includes('הפניקס') || text.includes('כלל רכב') || text.includes('כלל ביטוח') || text.includes('איילון')) return 'ביטוח';
   // מסעדות ומשלוחים
-  if (text.includes('מסעדה') || text.includes('קפה') || text.includes('ארומה') || text.includes('סטארבקס') || text.includes('מקדונלד') || text.includes('פיצה') || text.includes('בורגר') || text.includes('rest') || text.includes('wolt') || text.includes('וולט') || text.includes('תן ביס') || text.includes('10bis') || text.includes('japanika') || text.includes('domino') || text.includes('kfc') || text.includes('אגדיר') || text.includes('שיפודי') || text.includes('only 4') || text.includes('פיצה האט')) return 'בילוי-מסעדות';
+  if (text.includes('מסעדה') || text.includes('קפה') || text.includes('ארומה') || text.includes('סטארבקס') || text.includes('מקדונלד') || text.includes('פיצה') || text.includes('בורגר') || text.includes('rest') || text.includes('wolt') || text.includes('וולט') || text.includes('תן ביס') || text.includes('10bis') || text.includes('japanika') || text.includes('domino') || text.includes('kfc') || text.includes('אגדיר') || text.includes('שיפודי') || text.includes('פיצה האט')) return 'בילוי-מסעדות';
   // בריאות
-  if (text.includes('מכבי') || text.includes('כללית') || text.includes('מאוחדת') || text.includes('לאומית') || text.includes('סופר פארם') || text.includes('בית מרקחת') || text.includes('שרותי בריאות') || text.includes('סעוד') || text.includes('רופא')) return 'בריאות';
+  if (text.includes('מכבי') || text.includes('כללית') || text.includes('מאוחדת') || text.includes('לאומית') || text.includes('בית מרקחת') || text.includes('שרותי בריאות') || text.includes('סעוד') || text.includes('רופא')) return 'בריאות';
   // תקשורת ומנויים
-  if (text.includes('סלקום') || text.includes('פרטנר') || text.includes('פלאפון') || text.includes('הוט') || text.includes('בזק') || text.includes('גולן') || text.includes('yes') || text.includes('netflix') || text.includes('spotify') || text.includes('tab4u') || text.includes('google one') || text.includes('energy')) return 'תקשורת-מנויים';
+  if (text.includes('סלקום') || text.includes('פרטנר') || text.includes('פלאפון') || text.includes('הוט') || text.includes('בזק') || text.includes('גולן') || text.includes('yes') || text.includes('netflix') || text.includes('spotify') || text.includes('tab4u') || text.includes('google one')) return 'תקשורת-מנויים';
   // ביגוד וקניות
-  if (text.includes('zara') || text.includes('h&m') || text.includes('fox') || text.includes('קסטרו') || text.includes('רנואר') || text.includes('golf') || text.includes('תמנון') || text.includes('נעלי') || text.includes('פעמית')) return 'ביגוד-קניות';
-  // חינוך וספרים
-  if (text.includes('סטימצקי') || text.includes('ספר') || text.includes('צעצוע') || text.includes('חוגים') || text.includes('גן ילדים')) return 'חינוך';
+  if (text.includes('zara') || text.includes('h&m') || text.includes('fox') || text.includes('קסטרו') || text.includes('רנואר') || text.includes('golf') || text.includes('תמנון') || text.includes('נעלי')) return 'ביגוד-קניות';
+  // ספרים ומשחקים
+  if (text.includes('סטימצקי') || text.includes('צעצוע') || text.includes('חוגים') || text.includes('גן ילדים')) return 'מזון';
   // נסיעות
   if (text.includes('booking') || text.includes('airbnb') || text.includes('אל על') || text.includes('ישראייר') || text.includes('מלון') || text.includes('hotel')) return 'נסיעות';
   // קניות אונליין
@@ -718,8 +720,6 @@ function categorizeCreditCardBusiness(name: string): string {
   if (text.includes('bit') || text.includes('פפר') || text.includes('paybox') || text.includes('העברה')) return 'העברות';
   // דמי כרטיס
   if (text.includes('דמי כרטיס') || text.includes('הנפקה') || text.includes('עמלת')) return 'עמלות';
-  // שטראוס מים
-  if (text.includes('שטראוס') || text.includes('תמי 4')) return 'בית-תחזוקה';
   return 'אחר';
 }
 

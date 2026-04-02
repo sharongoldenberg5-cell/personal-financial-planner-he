@@ -49,6 +49,8 @@ const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: type
   'רכב-אחזקה': { label: 'אחזקת רכב', color: '#475569', icon: Car, group: 'רכב' },
   // תחבורה
   'תחבורה': { label: 'תחבורה ציבורית', color: '#0891b2', icon: Bus, group: 'תחבורה' },
+  // דיור - אנרגיה
+  'דיור-אנרגיה': { label: 'חשמל/מים/גז', color: '#f59e0b', icon: Zap, group: 'דיור' },
   // חינוך
   'חינוך': { label: 'חינוך', color: '#0d9488', icon: GraduationCap, group: 'חינוך' },
   // בריאות
