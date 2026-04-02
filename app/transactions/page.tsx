@@ -70,6 +70,10 @@ const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: type
   'הלוואות': { label: 'הלוואות', color: '#b91c1c', icon: Receipt, group: 'הלוואות' },
   // מט"ח
   'מט"ח': { label: 'מט"ח', color: '#6366f1', icon: Wallet, group: 'מט"ח' },
+  // בית ותחזוקה
+  'בית-תחזוקה': { label: 'בית ותחזוקה', color: '#78716c', icon: Home, group: 'דיור' },
+  // עמלות
+  'עמלות': { label: 'עמלות בנק/כרטיס', color: '#a8a29e', icon: Receipt, group: 'עמלות' },
   // אחר
   'אחר': { label: 'אחר', color: '#9ca3af', icon: Wallet, group: 'אחר' },
 };

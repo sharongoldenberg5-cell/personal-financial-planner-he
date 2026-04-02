@@ -250,10 +250,12 @@ function parseExcelFile(buffer: ArrayBuffer, fileName: string): ParseResult {
     }
 
     // Detect credit card statement
-    const isCreditCard = firstRows.some(r =>
+    // Detect credit card statement - check more rows for multi-section files like Hapoalim
+    const first30Rows = rawRows.slice(0, 30).map(r => (r || []).join(' '));
+    const isCreditCard = first30Rows.some(r =>
       r.includes('פירוט עסקאות') || r.includes('כרטיס אשראי') ||
       r.includes('מספר כרטיס') || r.includes('עסקאות בארץ') ||
-      r.includes('תשלום') && (r.includes('סכום עסקה') || r.includes('סה"כ לחיוב')) ||
+      r.includes('חיובים קרובים') || r.includes('רכישות בארץ') ||
       r.includes('שם בית עסק') || r.includes('בית עסק')
     );
 
@@ -425,90 +427,190 @@ function parseBankTransactions(rawRows: unknown[][], fileName: string): ParseRes
 
 // ============ Credit Card Statement ============
 function parseCreditCardStatement(rawRows: unknown[][], fileName: string): ParseResult {
-  // Find card number from first rows
+  // Scan all rows for metadata
   let cardNumber = '';
   let cardName = '';
   let period = '';
+  let accountNumber = '';
 
-  for (let i = 0; i < Math.min(10, rawRows.length); i++) {
+  for (let i = 0; i < Math.min(30, rawRows.length); i++) {
     const rowText = (rawRows[i] || []).map(c => String(c || '')).join(' ');
-    // Card number (last 4 digits)
+    // Card number
     const cardMatch = rowText.match(/(\d{4})\s*[-–]\s*(\d{4})\s*[-–]\s*[X*]{4}\s*[-–]\s*(\d{4})/);
-    if (cardMatch) cardNumber = cardMatch[3];
+    if (cardMatch && !cardNumber) cardNumber = cardMatch[3];
     if (!cardNumber) {
       const lastFour = rowText.match(/כרטיס.*?(\d{4})/);
       if (lastFour) cardNumber = lastFour[1];
     }
+    // Account number (Hapoalim format)
+    const accMatch = rowText.match(/מספר חשבון\s+([\d\-]+)/);
+    if (accMatch && !accountNumber) accountNumber = accMatch[1].trim();
     // Card name
-    if (rowText.includes('ויזה')) cardName = 'ויזה';
-    else if (rowText.includes('מסטרקארד') || rowText.includes('מאסטרקארד') || rowText.includes('mastercard')) cardName = 'מסטרקארד';
-    else if (rowText.includes('ישראכרט')) cardName = 'ישראכרט';
-    else if (rowText.includes('אמריקן') || rowText.includes('american')) cardName = 'אמריקן אקספרס';
-    else if (rowText.includes('דיינרס') || rowText.includes('diners')) cardName = 'דיינרס';
-    else if (rowText.includes('כאל') || rowText.includes('cal')) cardName = 'כאל';
-    else if (rowText.includes('מקס') || rowText.includes('max')) cardName = 'מקס';
-    else if (rowText.includes('לאומי קארד')) cardName = 'לאומי קארד';
+    if (!cardName) {
+      if (rowText.includes('ויזה')) cardName = 'ויזה';
+      else if (rowText.includes('מסטרקארד') || rowText.includes('מאסטרקארד') || rowText.includes('mastercard')) cardName = 'מסטרקארד';
+      else if (rowText.includes('ישראכרט')) cardName = 'ישראכרט';
+      else if (rowText.includes('אמריקן') || rowText.includes('american')) cardName = 'אמריקן אקספרס';
+      else if (rowText.includes('דיינרס') || rowText.includes('diners')) cardName = 'דיינרס';
+      else if (rowText.includes('כאל') || rowText.includes('cal')) cardName = 'כאל';
+      else if (rowText.includes('מקס') || rowText.includes('max')) cardName = 'מקס';
+      else if (rowText.includes('לאומי קארד')) cardName = 'לאומי קארד';
+    }
     // Period
-    const periodMatch = rowText.match(/(\d{1,2})[\/\-](\d{4})/);
-    if (periodMatch && !period) period = `${periodMatch[1]}/${periodMatch[2]}`;
-  }
-
-  if (!cardName) cardName = 'כרטיס אשראי';
-  if (!period) period = new Date().toISOString().slice(0, 7);
-
-  // Find header row
-  let headerIdx = -1;
-  const headerKeywords = ['תאריך', 'שם בית', 'בית עסק', 'סכום', 'תשלום'];
-  for (let i = 0; i < Math.min(20, rawRows.length); i++) {
-    const row = (rawRows[i] || []).map(c => String(c || '').trim());
-    const matches = headerKeywords.filter(k => row.some(c => c.includes(k)));
-    if (matches.length >= 2) {
-      headerIdx = i;
-      break;
+    const periodMatch = rowText.match(/תאריך הפקה\s+(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (periodMatch && !period) period = `${periodMatch[2]}/${periodMatch[3]}`;
+    if (!period) {
+      const periodMatch2 = rowText.match(/(\d{1,2})[\/\-](\d{4})/);
+      if (periodMatch2) period = `${periodMatch2[1]}/${periodMatch2[2]}`;
     }
   }
-  if (headerIdx < 0) {
-    return { records: [], rawData: [], headers: [], fileName, error: 'לא נמצאה שורת כותרות בדוח כרטיס האשראי' };
-  }
 
-  // Map header columns
-  const headerRow = (rawRows[headerIdx] || []).map(c => String(c || '').trim());
-  const findCol = (keywords: string[]) => headerRow.findIndex(h => keywords.some(k => h.includes(k)));
+  // Detect Hapoalim bank export format (multiple sections with "פירוט עבור הכרטיסים")
+  const isHapoalimFormat = rawRows.some(r => (r || []).join(' ').includes('פירוט עבור הכרטיסים'));
 
-  const dateCol = findCol(['תאריך עסקה', 'תאריך']);
-  const businessCol = findCol(['שם בית עסק', 'בית עסק', 'שם בית', 'תיאור']);
-  const amountCol = findCol(['סכום חיוב', 'סכום עסקה', 'סכום']);
-  const originalAmountCol = findCol(['סכום מקורי', 'סכום עסקה מקורי']);
-  const currencyCol = findCol(['מטבע']);
-  const installmentCol = findCol(['תשלום', 'תשלומים']);
-  const totalDealCol = findCol(['סכום עסקה מלא', 'סה"כ עסקה']);
+  if (!cardName) cardName = isHapoalimFormat ? 'בנק הפועלים' : 'כרטיס אשראי';
+  if (!cardNumber && accountNumber) cardNumber = accountNumber;
+  if (!period) period = new Date().toISOString().slice(0, 7);
 
   type CcTx = NonNullable<ParseResult['creditCardData']>['transactions'][0];
   const transactions: CcTx[] = [];
   const records: FinancialRecord[] = [];
   let totalCharged = 0;
 
-  for (let i = headerIdx + 1; i < rawRows.length; i++) {
-    const row = rawRows[i] || [];
-    if (row.length < 3) continue;
+  if (isHapoalimFormat) {
+    // Hapoalim format: find all "פירוט" sections and parse each
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowText = (rawRows[i] || []).join(' ');
+      if (!rowText.includes('פירוט עבור הכרטיסים')) continue;
 
-    // Parse date
-    let dateStr = '';
-    if (dateCol >= 0) {
-      const val = row[dateCol];
-      if (typeof val === 'number' && (val as number) > 40000) {
-        const d = new Date((val as number - 25569) * 86400 * 1000);
-        dateStr = d.toISOString().split('T')[0];
-      } else if (typeof val === 'string' && val.trim()) {
-        dateStr = val.trim();
+      // Next header row should be 2 rows down (skip account number row)
+      const headerIdx = i + 2;
+      if (headerIdx >= rawRows.length) continue;
+      const headerRow = (rawRows[headerIdx] || []).map(c => String(c || '').trim());
+      const findCol = (keywords: string[]) => headerRow.findIndex(h => keywords.some(k => h.includes(k)));
+
+      const cardCol = findCol(['שם כרטיס']);
+      const dateCol = findCol(['תאריך']);
+      // Skip 'חיוב לתאריך' - we want the actual transaction date which is the second 'תאריך' column
+      let txDateCol = dateCol;
+      if (cardCol >= 0 && dateCol >= 0) {
+        // In Hapoalim: col0=שם כרטיס, col1=חיוב לתאריך, col2=תאריך (actual tx date)
+        const secondDate = headerRow.findIndex((h, idx) => idx > dateCol && h.includes('תאריך'));
+        if (secondDate >= 0) txDateCol = secondDate;
+      }
+      const businessCol = findCol(['שם בית עסק']);
+      const amountCol = findCol(['סכום חיוב']);
+      const originalAmountCol = findCol(['סכום קנייה']);
+      const txTypeCol = findCol(['תאור סוג', 'סוג עסק']);
+
+      // Parse data rows until empty row or next section
+      for (let j = headerIdx + 1; j < rawRows.length; j++) {
+        const row = rawRows[j] || [];
+        if (row.length < 3) break;
+        const rowJoin = row.join(' ').trim();
+        if (!rowJoin || rowJoin.includes('פירוט עבור') || rowJoin.includes('רכישות ב')) break;
+
+        // Parse date (Excel number)
+        let dateStr = '';
+        const dateIdx = txDateCol >= 0 ? txDateCol : dateCol;
+        if (dateIdx >= 0) {
+          const val = row[dateIdx];
+          if (typeof val === 'number' && (val as number) > 40000) {
+            const d = new Date(((val as number) - 25569) * 86400 * 1000);
+            dateStr = d.toISOString().split('T')[0];
+          } else if (typeof val === 'string' && val.trim()) {
+            dateStr = val.trim();
+          }
+        }
+        if (!dateStr) continue;
+
+        const businessName = businessCol >= 0 ? String(row[businessCol] || '').trim() : '';
+        if (!businessName || businessName.includes('סה"כ') || businessName.includes("סה''כ")) continue;
+
+        const amount = amountCol >= 0 ? Math.abs(parseFloat(String(row[amountCol])) || 0) : 0;
+        const originalAmount = originalAmountCol >= 0 ? Math.abs(parseFloat(String(row[originalAmountCol])) || 0) : amount;
+        if (amount === 0 && originalAmount === 0) continue;
+
+        const txType = txTypeCol >= 0 ? String(row[txTypeCol] || '') : '';
+        const isInstallment = txType.includes('תשלום');
+        const cardId = cardCol >= 0 ? String(row[cardCol] || '') : '';
+
+        const category = categorizeCreditCardBusiness(businessName);
+        const finalAmount = amount || originalAmount;
+        totalCharged += finalAmount;
+
+        transactions.push({
+          date: dateStr,
+          businessName: `${businessName}${cardId ? ` [${cardId}]` : ''}`,
+          category,
+          amount: finalAmount,
+          currency: 'ILS',
+          originalAmount: originalAmount || finalAmount,
+          originalCurrency: 'ILS',
+          installmentCurrent: 0,
+          installmentTotal: isInstallment ? 999 : 0,
+          totalDealAmount: isInstallment ? originalAmount : finalAmount,
+          isInstallment,
+        });
+
+        records.push({
+          id: generateId(),
+          date: dateStr,
+          description: businessName,
+          amount: finalAmount,
+          type: 'expense',
+          category,
+          source: fileName,
+        });
       }
     }
-    if (!dateStr) continue;
+  } else {
+    // Standard CC format (כאל, ישראכרט, etc.)
+    let headerIdx = -1;
+    const headerKeywords = ['תאריך', 'שם בית', 'בית עסק', 'סכום', 'תשלום'];
+    for (let i = 0; i < Math.min(20, rawRows.length); i++) {
+      const row = (rawRows[i] || []).map(c => String(c || '').trim());
+      const matches = headerKeywords.filter(k => row.some(c => c.includes(k)));
+      if (matches.length >= 2) {
+        headerIdx = i;
+        break;
+      }
+    }
+    if (headerIdx < 0) {
+      return { records: [], rawData: [], headers: [], fileName, error: 'לא נמצאה שורת כותרות בדוח כרטיס האשראי' };
+    }
 
-    const businessName = businessCol >= 0 ? String(row[businessCol] || '').trim() : '';
-    if (!businessName) continue;
+    const headerRow = (rawRows[headerIdx] || []).map(c => String(c || '').trim());
+    const findCol = (keywords: string[]) => headerRow.findIndex(h => keywords.some(k => h.includes(k)));
 
-    const amount = amountCol >= 0 ? Math.abs(parseFloat(String(row[amountCol])) || 0) : 0;
+    const dateCol = findCol(['תאריך עסקה', 'תאריך']);
+    const businessCol = findCol(['שם בית עסק', 'בית עסק', 'שם בית', 'תיאור']);
+    const amountCol = findCol(['סכום חיוב', 'סכום עסקה', 'סכום']);
+    const originalAmountCol = findCol(['סכום מקורי', 'סכום עסקה מקורי']);
+    const currencyCol = findCol(['מטבע']);
+    const installmentCol = findCol(['תשלום', 'תשלומים', 'סוג עסקה']);
+    const totalDealCol = findCol(['סכום עסקה מלא', 'סה"כ עסקה']);
+
+    for (let i = headerIdx + 1; i < rawRows.length; i++) {
+      const row = rawRows[i] || [];
+      if (row.length < 3) continue;
+
+      let dateStr = '';
+      if (dateCol >= 0) {
+        const val = row[dateCol];
+        if (typeof val === 'number' && (val as number) > 40000) {
+          const d = new Date(((val as number) - 25569) * 86400 * 1000);
+          dateStr = d.toISOString().split('T')[0];
+        } else if (typeof val === 'string' && val.trim()) {
+          dateStr = val.trim();
+        }
+      }
+      if (!dateStr) continue;
+
+      const businessName = businessCol >= 0 ? String(row[businessCol] || '').trim() : '';
+      if (!businessName || businessName.includes('סה"כ') || businessName.includes("סה''כ")) continue;
+
+      const amount = amountCol >= 0 ? Math.abs(parseFloat(String(row[amountCol])) || 0) : 0;
     if (amount === 0) continue;
 
     const originalAmount = originalAmountCol >= 0 ? Math.abs(parseFloat(String(row[originalAmountCol])) || 0) : amount;
@@ -565,7 +667,8 @@ function parseCreditCardStatement(rawRows: unknown[][], fileName: string): Parse
       category,
       source: fileName,
     });
-  }
+    }
+  } // end standard format
 
   return {
     records,
@@ -576,7 +679,7 @@ function parseCreditCardStatement(rawRows: unknown[][], fileName: string): Parse
     headers: ['date', 'business', 'amount', 'installment'],
     fileName,
     creditCardData: {
-      cardNumber: cardNumber || '****',
+      cardNumber: cardNumber || accountNumber || '****',
       cardName,
       period,
       totalCharged,
@@ -587,26 +690,36 @@ function parseCreditCardStatement(rawRows: unknown[][], fileName: string): Parse
 
 function categorizeCreditCardBusiness(name: string): string {
   const text = name.toLowerCase();
-  // מזון
-  if (text.includes('שופרסל') || text.includes('רמי לוי') || text.includes('ויקטורי') || text.includes('אושר עד') || text.includes('יוחננוף') || text.includes('חצי חינם') || text.includes('טיב טעם') || text.includes('פרש מרקט') || text.includes('סופר') || text.includes('מכולת')) return 'מזון';
-  // דלק
-  if (text.includes('סונול') || text.includes('פז') || text.includes('דור אלון') || text.includes('דלק') || text.includes('ten') || text.includes('yellow')) return 'רכב-דלק';
+  // מזון וסופרים
+  if (text.includes('שופרסל') || text.includes('רמי לוי') || text.includes('ויקטורי') || text.includes('אושר עד') || text.includes('יוחננוף') || text.includes('חצי חינם') || text.includes('טיב טעם') || text.includes('פרש מרקט') || text.includes('סופר') || text.includes('מכולת') || text.includes('סטופמרקט') || text.includes('פירות') || text.includes('ירקות') || text.includes('דהן פירות') || text.includes('יוניברס') || text.includes('מעדני') || text.includes('בשר') || text.includes('מאפי')) return 'מזון';
+  // דלק ורכב
+  if (text.includes('סונול') || text.includes('פז') || text.includes('דור אלון') || text.includes('דלק') || text.includes('ten') || text.includes('yellow') || text.includes('חרמש') || text.includes('מנטה')) return 'רכב-דלק';
+  // ביטוח
+  if (text.includes('ביטוח') || text.includes('הראל') || text.includes('מנורה') || text.includes('הפניקס') || text.includes('כלל רכב') || text.includes('כלל ביטוח') || text.includes('איילון')) return 'ביטוח';
   // מסעדות ומשלוחים
-  if (text.includes('מסעדה') || text.includes('קפה') || text.includes('ארומה') || text.includes('סטארבקס') || text.includes('מקדונלד') || text.includes('פיצה') || text.includes('בורגר') || text.includes('rest') || text.includes('wolt') || text.includes('וולט') || text.includes('תן ביס') || text.includes('10bis') || text.includes('japanika') || text.includes('domino') || text.includes('kfc') || text.includes('אגדיר') || text.includes('שיפודי')) return 'בילוי-מסעדות';
-  // ביגוד
-  if (text.includes('zara') || text.includes('h&m') || text.includes('fox') || text.includes('קסטרו') || text.includes('רנואר') || text.includes('golf') || text.includes('תמנון') || text.includes('נעלי')) return 'ביגוד-קניות';
+  if (text.includes('מסעדה') || text.includes('קפה') || text.includes('ארומה') || text.includes('סטארבקס') || text.includes('מקדונלד') || text.includes('פיצה') || text.includes('בורגר') || text.includes('rest') || text.includes('wolt') || text.includes('וולט') || text.includes('תן ביס') || text.includes('10bis') || text.includes('japanika') || text.includes('domino') || text.includes('kfc') || text.includes('אגדיר') || text.includes('שיפודי') || text.includes('only 4') || text.includes('פיצה האט')) return 'בילוי-מסעדות';
   // בריאות
-  if (text.includes('מכבי') || text.includes('כללית') || text.includes('מאוחדת') || text.includes('לאומית') || text.includes('סופר פארם') || text.includes('בית מרקחת')) return 'בריאות';
-  // תקשורת
-  if (text.includes('סלקום') || text.includes('פרטנר') || text.includes('פלאפון') || text.includes('הוט') || text.includes('בזק') || text.includes('גולן') || text.includes('yes') || text.includes('netflix') || text.includes('spotify')) return 'תקשורת-מנויים';
-  // חינוך
-  if (text.includes('ספר') || text.includes('צעצוע') || text.includes('חוגים') || text.includes('גן ילדים')) return 'חינוך';
+  if (text.includes('מכבי') || text.includes('כללית') || text.includes('מאוחדת') || text.includes('לאומית') || text.includes('סופר פארם') || text.includes('בית מרקחת') || text.includes('שרותי בריאות') || text.includes('סעוד') || text.includes('רופא')) return 'בריאות';
+  // תקשורת ומנויים
+  if (text.includes('סלקום') || text.includes('פרטנר') || text.includes('פלאפון') || text.includes('הוט') || text.includes('בזק') || text.includes('גולן') || text.includes('yes') || text.includes('netflix') || text.includes('spotify') || text.includes('tab4u') || text.includes('google one') || text.includes('energy')) return 'תקשורת-מנויים';
+  // ביגוד וקניות
+  if (text.includes('zara') || text.includes('h&m') || text.includes('fox') || text.includes('קסטרו') || text.includes('רנואר') || text.includes('golf') || text.includes('תמנון') || text.includes('נעלי') || text.includes('פעמית')) return 'ביגוד-קניות';
+  // חינוך וספרים
+  if (text.includes('סטימצקי') || text.includes('ספר') || text.includes('צעצוע') || text.includes('חוגים') || text.includes('גן ילדים')) return 'חינוך';
   // נסיעות
   if (text.includes('booking') || text.includes('airbnb') || text.includes('אל על') || text.includes('ישראייר') || text.includes('מלון') || text.includes('hotel')) return 'נסיעות';
-  // אונליין
+  // קניות אונליין
   if (text.includes('amazon') || text.includes('aliexpress') || text.includes('ebay') || text.includes('apple') || text.includes('google') || text.includes('paypal')) return 'קניות-אונליין';
-  // ביטוח
-  if (text.includes('ביטוח') || text.includes('הראל') || text.includes('מנורה') || text.includes('הפניקס') || text.includes('כלל') || text.includes('איילון')) return 'ביטוח';
+  // בית ותחזוקה
+  if (text.includes('אינסטלציה') || text.includes('חשמלאי') || text.includes('שיפוצ') || text.includes('פרחי') || text.includes('צמחי')) return 'בית-תחזוקה';
+  // הימורים/לוטו
+  if (text.includes('פיס') || text.includes('לוטו') || text.includes('טוטו')) return 'בילוי-פנאי';
+  // BIT / העברות
+  if (text.includes('bit') || text.includes('פפר') || text.includes('paybox') || text.includes('העברה')) return 'העברות';
+  // דמי כרטיס
+  if (text.includes('דמי כרטיס') || text.includes('הנפקה') || text.includes('עמלת')) return 'עמלות';
+  // שטראוס מים
+  if (text.includes('שטראוס') || text.includes('תמי 4')) return 'בית-תחזוקה';
   return 'אחר';
 }
 
