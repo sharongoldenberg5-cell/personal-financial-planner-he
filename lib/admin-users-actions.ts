@@ -11,17 +11,25 @@ export async function dbGetAllUsers() {
   const profiles = await prisma.profile.findMany();
   const profileMap = new Map(profiles.map(p => [p.userId, p]));
 
-  // Get auth users via direct pg connection (pooler doesn't allow auth schema access)
-  let authUsers: { id: string; email: string; created_at: Date; last_sign_in_at: Date | null }[] = [];
+  // Get auth users via Supabase Admin API
+  let authUsers: { id: string; email: string; created_at: string; last_sign_in_at: string | null }[] = [];
   try {
-    const { Client } = require('pg');
-    const pgClient = new Client({ connectionString: process.env.DIRECT_URL });
-    await pgClient.connect();
-    const result = await pgClient.query('SELECT id, email, created_at, last_sign_in_at FROM auth.users ORDER BY created_at DESC');
-    authUsers = result.rows;
-    await pgClient.end();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const resp = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+      headers: { 'Authorization': `Bearer ${serviceKey}`, 'apikey': serviceKey! },
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      authUsers = (data.users || []).map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at,
+      }));
+    }
   } catch (e) {
-    console.error('Failed to query auth.users:', e);
+    console.error('Failed to fetch auth users:', e);
   }
   await rawClient.$disconnect();
 
