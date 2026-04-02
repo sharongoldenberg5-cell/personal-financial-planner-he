@@ -441,7 +441,7 @@ function parseCreditCardStatement(rawRows: unknown[][], fileName: string): Parse
     }
     // Card name
     if (rowText.includes('ויזה')) cardName = 'ויזה';
-    else if (rowText.includes('מסטרקארד') || rowText.includes('mastercard')) cardName = 'מסטרקארד';
+    else if (rowText.includes('מסטרקארד') || rowText.includes('מאסטרקארד') || rowText.includes('mastercard')) cardName = 'מסטרקארד';
     else if (rowText.includes('ישראכרט')) cardName = 'ישראכרט';
     else if (rowText.includes('אמריקן') || rowText.includes('american')) cardName = 'אמריקן אקספרס';
     else if (rowText.includes('דיינרס') || rowText.includes('diners')) cardName = 'דיינרס';

@@ -405,9 +405,9 @@ export default function TransactionsPage() {
             <div>
               <h3 className="text-sm font-medium text-text-light mb-2">הוצאות לפי קבוצה</h3>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={groupBarData} layout="vertical">
-                  <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={80} />
+                <BarChart data={groupBarData} layout="vertical" margin={{ left: 10, right: 30 }}>
+                  <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
                   <Tooltip formatter={(val) => fmtCur(Number(val))} />
                   <Bar dataKey="value" fill="#dc2626" radius={[0, 4, 4, 0]} />
                 </BarChart>
