@@ -31,11 +31,20 @@ export default function ProfilePage() {
     setSaved(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const now = new Date().toISOString();
     const updated = { ...profile, id: profile.id || generateId(), createdAt: profile.createdAt || now, updatedAt: now };
     saveProfile(updated);
     setProfile(updated);
+    // Sync profile to DB
+    try {
+      await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ profile: updated }),
+      });
+    } catch {}
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
