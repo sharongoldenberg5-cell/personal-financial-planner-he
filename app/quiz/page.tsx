@@ -342,7 +342,7 @@ export default function QuizPage() {
     }
   };
 
-  const handleLeadSubmit = () => {
+  const handleLeadSubmit = async () => {
     // Save lead data
     const leadData = {
       id: generateId(),
@@ -359,10 +359,9 @@ export default function QuizPage() {
       hasUploads: uploadedFiles.some(f => f.status === 'done'),
       timestamp: new Date().toISOString(),
     };
-    // Store in localStorage for now (will be DB later)
-    const leads = JSON.parse(localStorage.getItem('quiz-leads') || '[]');
-    leads.push(leadData);
-    localStorage.setItem('quiz-leads', JSON.stringify(leads));
+    // Store in localStorage + sync to DB
+    const { saveLead } = await import('@/lib/admin-storage');
+    saveLead(leadData as any);
     setLeadSubmitted(true);
   };
 

@@ -1,5 +1,12 @@
 'use client';
 
+import { dbSaveLead, dbUpdateLead, dbDeleteLead as dbRemoveLead, dbSaveAdvisor, dbDeleteAdvisor as dbRemoveAdvisor } from './admin-db-actions';
+
+// Background sync to DB
+function syncToDb(fn: () => Promise<unknown>) {
+  fn().catch(e => console.warn('[Admin DB Sync]', e));
+}
+
 // ===== TYPES =====
 export interface Lead {
   id: string;
@@ -47,12 +54,33 @@ export function updateLead(id: string, updates: Partial<Lead>): void {
   if (idx >= 0) {
     leads[idx] = { ...leads[idx], ...updates };
     localStorage.setItem('quiz-leads', JSON.stringify(leads));
+    syncToDb(() => dbUpdateLead(id, updates as any));
   }
 }
 
 export function deleteLead(id: string): void {
   const leads = getLeads().filter(l => l.id !== id);
   localStorage.setItem('quiz-leads', JSON.stringify(leads));
+  syncToDb(() => dbRemoveLead(id));
+}
+
+export function saveLead(lead: Lead): void {
+  const leads = getLeads();
+  const idx = leads.findIndex(l => l.id === lead.id);
+  if (idx >= 0) { leads[idx] = lead; } else { leads.push(lead); }
+  localStorage.setItem('quiz-leads', JSON.stringify(leads));
+  syncToDb(() => dbSaveLead({
+    id: lead.id,
+    name: lead.name,
+    phone: lead.phone,
+    email: lead.email,
+    score: lead.percentScore,
+    heatScore: lead.heatPercent,
+    proType: lead.proType,
+    answers: lead.answers,
+    assignedTo: lead.assignedTo,
+    status: lead.status,
+  }));
 }
 
 export function getLeadHeatLevel(heatPercent: number): 'hot' | 'warm' | 'cold' {
@@ -70,17 +98,25 @@ export function getAdvisors(): Advisor[] {
 export function saveAdvisor(advisor: Advisor): void {
   const advisors = getAdvisors();
   const idx = advisors.findIndex(a => a.id === advisor.id);
-  if (idx >= 0) {
-    advisors[idx] = advisor;
-  } else {
-    advisors.push(advisor);
-  }
+  if (idx >= 0) { advisors[idx] = advisor; } else { advisors.push(advisor); }
   localStorage.setItem('advisors', JSON.stringify(advisors));
+  syncToDb(() => dbSaveAdvisor({
+    id: advisor.id,
+    name: advisor.name,
+    company: advisor.company,
+    phone: advisor.phone,
+    email: advisor.email,
+    license: advisor.license,
+    specialty: advisor.specialty?.join(','),
+    rating: advisor.rating,
+    active: advisor.active,
+  }));
 }
 
 export function deleteAdvisor(id: string): void {
   const advisors = getAdvisors().filter(a => a.id !== id);
   localStorage.setItem('advisors', JSON.stringify(advisors));
+  syncToDb(() => dbRemoveAdvisor(id));
 }
 
 // ===== STATS =====
@@ -97,14 +133,12 @@ export function getLeadStats() {
   const yellow = leads.filter(l => l.percentScore >= 45 && l.percentScore < 70).length;
   const green = leads.filter(l => l.percentScore >= 70).length;
 
-  // Leads per day (last 7 days)
   const perDay: Record<string, number> = {};
   const now = new Date();
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().split('T')[0];
-    perDay[key] = 0;
+    perDay[d.toISOString().split('T')[0]] = 0;
   }
   for (const lead of leads) {
     const day = lead.timestamp?.split('T')[0];
