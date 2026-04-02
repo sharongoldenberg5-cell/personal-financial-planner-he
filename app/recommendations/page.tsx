@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/translations';
-import { getProfile, getAssets, getLiabilities, getPensionData, getGoals, getRecommendations, saveRecommendations, clearAllRecommendations, getRetirementGoals, getMislakaReports } from '@/lib/storage';
+import { getProfile, getAssets, getLiabilities, getPensionData, getGoals, getRecommendations, saveRecommendations, clearAllRecommendations, getRetirementGoals, getMislakaReports, getBankAccounts, getMortgageReports } from '@/lib/storage';
 import { generateRuleBasedRecommendations } from '@/lib/rules-engine';
 import type { Recommendation } from '@/lib/types';
 import { Lightbulb, RefreshCw, AlertTriangle, ChevronDown, ChevronUp, Cpu, Calculator, RotateCcw } from 'lucide-react';
@@ -53,6 +53,8 @@ export default function RecommendationsPage() {
         goals: getGoals(),
         retirementGoals: getRetirementGoals(),
         mislakaReports: getMislakaReports(),
+        bankAccounts: getBankAccounts(),
+        mortgageReports: getMortgageReports(),
       });
 
       saveRecommendations(recs);
