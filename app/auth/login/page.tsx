@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -75,6 +76,26 @@ export default function LoginPage() {
             className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-medium disabled:opacity-50"
           >
             {loading ? 'מתחבר...' : 'התחבר'}
+          </button>
+
+          {resetSent && (
+            <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg p-3 text-sm text-center">
+              נשלח קישור לאיפוס סיסמה לאימייל שלך
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={async () => {
+              if (!email) { setError('הכנס אימייל קודם'); return; }
+              await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/auth/login`,
+              });
+              setResetSent(true);
+            }}
+            className="w-full text-sm text-primary hover:underline"
+          >
+            שכחתי סיסמה
           </button>
 
           <p className="text-center text-sm text-text-light">
