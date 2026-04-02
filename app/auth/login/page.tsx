@@ -25,7 +25,10 @@ export default function LoginPage() {
       setError(error.message === 'Invalid login credentials' ? 'אימייל או סיסמה שגויים' : error.message);
       setLoading(false);
     } else {
-      // Small delay to let session cookie propagate
+      // Clear old user data
+      localStorage.removeItem('financial-planner-data');
+      localStorage.removeItem('financial-planner-last-sync');
+      sessionStorage.clear();
       await new Promise(r => setTimeout(r, 500));
       window.location.href = '/';
     }

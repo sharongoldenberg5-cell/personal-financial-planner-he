@@ -42,6 +42,10 @@ export default function RegisterPage() {
       setError(error.message);
       setLoading(false);
     } else {
+      // Clear old user data for fresh start
+      localStorage.removeItem('financial-planner-data');
+      localStorage.removeItem('financial-planner-last-sync');
+      sessionStorage.clear();
       await new Promise(r => setTimeout(r, 500));
       window.location.href = '/';
     }

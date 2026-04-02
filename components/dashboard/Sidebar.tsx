@@ -48,7 +48,9 @@ export function Sidebar() {
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
+    localStorage.removeItem('financial-planner-data');
     localStorage.removeItem('financial-planner-last-sync');
+    sessionStorage.clear();
     window.location.href = '/auth/login';
   };
 
