@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,15 +26,18 @@ export async function GET() {
     const data = await resp.json();
     const authUsers = data.users || [];
 
-    // Get profiles from DB
-    const prisma = new PrismaClient();
-    const profiles = await prisma.profile.findMany();
-    await prisma.$disconnect();
-
-    const profileMap = new Map(profiles.map(p => [p.userId, p]));
+    // Get profiles via Supabase REST API (bypasses RLS with service key)
+    const profilesResp = await fetch(`${supabaseUrl}/rest/v1/Profile?select=*`, {
+      headers: {
+        'Authorization': `Bearer ${serviceKey}`,
+        'apikey': serviceKey,
+      },
+    });
+    const profiles = profilesResp.ok ? await profilesResp.json() : [];
+    const profileMap = new Map((profiles as any[]).map((p: any) => [p.userId, p]));
 
     const users = authUsers.map((u: any) => {
-      const profile = profileMap.get(u.id);
+      const profile: any = profileMap.get(u.id);
       return {
         userId: u.id,
         email: u.email || '',
