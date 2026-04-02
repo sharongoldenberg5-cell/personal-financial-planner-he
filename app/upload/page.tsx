@@ -213,6 +213,7 @@ export default function UploadPage() {
   const savedMortgageIds = useRef<Set<string>>(new Set());
   const savedMislakaIds = useRef<Set<string>>(new Set());
   const savedBankAccountIds = useRef<Set<string>>(new Set());
+  const savedCreditCardIds = useRef<Set<string>>(new Set());
   useEffect(() => {
     for (const fr of fileResults) {
       if (fr.processing) continue;
@@ -261,7 +262,38 @@ export default function UploadPage() {
           savedMislakaIds.current.add(fr.id);
         }
       }
-      // Bank account data - not auto-saved, user must approve via button
+      // Bank account data - auto-save
+      const bankData = fr.result?.bankAccountData;
+      if (bankData && bankData.transactions.length > 0 && !savedBankAccountIds.current.has(fr.id)) {
+        saveBankAccount({
+          id: fr.id,
+          accountNumber: bankData.accountNumber,
+          bank: bankData.bank,
+          type: 'personal',
+          owner: 'client',
+          period: bankData.period,
+          transactions: bankData.transactions,
+          importDate: new Date().toISOString(),
+        });
+        savedBankAccountIds.current.add(fr.id);
+        setFileResults(prev => prev.map(f => f.id === fr.id ? { ...f, bankAccountSaved: true } : f));
+      }
+      // Credit card data - auto-save
+      const ccData = fr.result?.creditCardData;
+      if (ccData && ccData.transactions.length > 0 && !savedCreditCardIds.current.has(fr.id)) {
+        saveCreditCard({
+          id: fr.id,
+          cardNumber: ccData.cardNumber,
+          cardName: ccData.cardName,
+          owner: 'client',
+          period: ccData.period,
+          totalCharged: ccData.totalCharged,
+          transactions: ccData.transactions,
+          importDate: new Date().toISOString(),
+        });
+        savedCreditCardIds.current.add(fr.id);
+        setFileResults(prev => prev.map(f => f.id === fr.id ? { ...f, creditCardSaved: true } : f));
+      }
     }
   }, [fileResults]);
 
@@ -820,18 +852,11 @@ export default function UploadPage() {
                         {bankData.transactions.length > 5 && (
                           <p className="text-xs text-blue-600 mb-3">... +{bankData.transactions.length - 5} תנועות נוספות</p>
                         )}
-                        {!fr.bankAccountSaved ? (
-                          <button onClick={() => handleSaveBankAccount(fr)}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                            <BarChart3 size={16} /> ייבא תנועות לניתוח
-                          </button>
-                        ) : (
-                          <div className="flex items-center gap-2 text-blue-700 text-sm">
-                            <CheckCircle size={16} />
-                            <span>התנועות יובאו בהצלחה</span>
-                            <a href="/transactions" className="underline hover:text-blue-900 ms-1">עבור לניתוח תנועות →</a>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 text-blue-700 text-sm">
+                          <CheckCircle size={16} />
+                          <span>התנועות יובאו אוטומטית</span>
+                          <a href="/transactions" className="underline hover:text-blue-900 ms-1">עבור לניתוח →</a>
+                        </div>
                       </div>
                     )}
 
@@ -900,17 +925,11 @@ export default function UploadPage() {
                           {ccData.transactions.length > 5 && (
                             <p className="text-xs text-purple-600 mb-3">... +{ccData.transactions.length - 5} עסקאות נוספות</p>
                           )}
-                          {!fr.creditCardSaved ? (
-                            <button onClick={() => handleSaveCreditCard(fr)}
-                              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm">
-                              <CreditCard size={16} /> ייבא דוח כרטיס אשראי
-                            </button>
-                          ) : (
-                            <div className="flex items-center gap-2 text-purple-700 text-sm">
-                              <CheckCircle size={16} />
-                              <span>דוח כרטיס האשראי יובא בהצלחה</span>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-2 text-purple-700 text-sm">
+                            <CheckCircle size={16} />
+                            <span>דוח כרטיס האשראי יובא אוטומטית</span>
+                            <a href="/transactions" className="underline hover:text-purple-900 ms-1">עבור לניתוח →</a>
+                          </div>
                         </div>
                       );
                     })()}

@@ -591,8 +591,8 @@ function categorizeCreditCardBusiness(name: string): string {
   if (text.includes('שופרסל') || text.includes('רמי לוי') || text.includes('ויקטורי') || text.includes('אושר עד') || text.includes('יוחננוף') || text.includes('חצי חינם') || text.includes('טיב טעם') || text.includes('פרש מרקט') || text.includes('סופר') || text.includes('מכולת')) return 'מזון';
   // דלק
   if (text.includes('סונול') || text.includes('פז') || text.includes('דור אלון') || text.includes('דלק') || text.includes('ten') || text.includes('yellow')) return 'רכב-דלק';
-  // מסעדות
-  if (text.includes('מסעדה') || text.includes('קפה') || text.includes('ארומה') || text.includes('סטארבקס') || text.includes('מקדונלד') || text.includes('פיצה') || text.includes('בורגר') || text.includes('rest')) return 'בילוי-מסעדות';
+  // מסעדות ומשלוחים
+  if (text.includes('מסעדה') || text.includes('קפה') || text.includes('ארומה') || text.includes('סטארבקס') || text.includes('מקדונלד') || text.includes('פיצה') || text.includes('בורגר') || text.includes('rest') || text.includes('wolt') || text.includes('וולט') || text.includes('תן ביס') || text.includes('10bis') || text.includes('japanika') || text.includes('domino') || text.includes('kfc') || text.includes('אגדיר') || text.includes('שיפודי')) return 'בילוי-מסעדות';
   // ביגוד
   if (text.includes('zara') || text.includes('h&m') || text.includes('fox') || text.includes('קסטרו') || text.includes('רנואר') || text.includes('golf') || text.includes('תמנון') || text.includes('נעלי')) return 'ביגוד-קניות';
   // בריאות
