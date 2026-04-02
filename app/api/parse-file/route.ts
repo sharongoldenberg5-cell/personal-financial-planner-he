@@ -69,6 +69,25 @@ interface ParseResult {
       category: string;
     }[];
   };
+  creditCardData?: {
+    cardNumber: string;
+    cardName: string;
+    period: string;
+    totalCharged: number;
+    transactions: {
+      date: string;
+      businessName: string;
+      category: string;
+      amount: number;
+      currency: string;
+      originalAmount: number;
+      originalCurrency: string;
+      installmentCurrent: number;
+      installmentTotal: number;
+      totalDealAmount: number;
+      isInstallment: boolean;
+    }[];
+  };
 }
 
 interface MortgageSubLoan {
@@ -228,6 +247,18 @@ function parseExcelFile(buffer: ArrayBuffer, fileName: string): ParseResult {
 
     if (isBankTransactions) {
       return parseBankTransactions(rawRows, fileName);
+    }
+
+    // Detect credit card statement
+    const isCreditCard = firstRows.some(r =>
+      r.includes('פירוט עסקאות') || r.includes('כרטיס אשראי') ||
+      r.includes('מספר כרטיס') || r.includes('עסקאות בארץ') ||
+      r.includes('תשלום') && (r.includes('סכום עסקה') || r.includes('סה"כ לחיוב')) ||
+      r.includes('שם בית עסק') || r.includes('בית עסק')
+    );
+
+    if (isCreditCard) {
+      return parseCreditCardStatement(rawRows, fileName);
     }
 
     const rawData = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
@@ -390,6 +421,193 @@ function parseBankTransactions(rawRows: unknown[][], fileName: string): ParseRes
       transactions,
     },
   };
+}
+
+// ============ Credit Card Statement ============
+function parseCreditCardStatement(rawRows: unknown[][], fileName: string): ParseResult {
+  // Find card number from first rows
+  let cardNumber = '';
+  let cardName = '';
+  let period = '';
+
+  for (let i = 0; i < Math.min(10, rawRows.length); i++) {
+    const rowText = (rawRows[i] || []).map(c => String(c || '')).join(' ');
+    // Card number (last 4 digits)
+    const cardMatch = rowText.match(/(\d{4})\s*[-–]\s*(\d{4})\s*[-–]\s*[X*]{4}\s*[-–]\s*(\d{4})/);
+    if (cardMatch) cardNumber = cardMatch[3];
+    if (!cardNumber) {
+      const lastFour = rowText.match(/כרטיס.*?(\d{4})/);
+      if (lastFour) cardNumber = lastFour[1];
+    }
+    // Card name
+    if (rowText.includes('ויזה')) cardName = 'ויזה';
+    else if (rowText.includes('מסטרקארד') || rowText.includes('mastercard')) cardName = 'מסטרקארד';
+    else if (rowText.includes('ישראכרט')) cardName = 'ישראכרט';
+    else if (rowText.includes('אמריקן') || rowText.includes('american')) cardName = 'אמריקן אקספרס';
+    else if (rowText.includes('דיינרס') || rowText.includes('diners')) cardName = 'דיינרס';
+    else if (rowText.includes('כאל') || rowText.includes('cal')) cardName = 'כאל';
+    else if (rowText.includes('מקס') || rowText.includes('max')) cardName = 'מקס';
+    else if (rowText.includes('לאומי קארד')) cardName = 'לאומי קארד';
+    // Period
+    const periodMatch = rowText.match(/(\d{1,2})[\/\-](\d{4})/);
+    if (periodMatch && !period) period = `${periodMatch[1]}/${periodMatch[2]}`;
+  }
+
+  if (!cardName) cardName = 'כרטיס אשראי';
+  if (!period) period = new Date().toISOString().slice(0, 7);
+
+  // Find header row
+  let headerIdx = -1;
+  const headerKeywords = ['תאריך', 'שם בית', 'בית עסק', 'סכום', 'תשלום'];
+  for (let i = 0; i < Math.min(20, rawRows.length); i++) {
+    const row = (rawRows[i] || []).map(c => String(c || '').trim());
+    const matches = headerKeywords.filter(k => row.some(c => c.includes(k)));
+    if (matches.length >= 2) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx < 0) {
+    return { records: [], rawData: [], headers: [], fileName, error: 'לא נמצאה שורת כותרות בדוח כרטיס האשראי' };
+  }
+
+  // Map header columns
+  const headerRow = (rawRows[headerIdx] || []).map(c => String(c || '').trim());
+  const findCol = (keywords: string[]) => headerRow.findIndex(h => keywords.some(k => h.includes(k)));
+
+  const dateCol = findCol(['תאריך עסקה', 'תאריך']);
+  const businessCol = findCol(['שם בית עסק', 'בית עסק', 'שם בית', 'תיאור']);
+  const amountCol = findCol(['סכום חיוב', 'סכום עסקה', 'סכום']);
+  const originalAmountCol = findCol(['סכום מקורי', 'סכום עסקה מקורי']);
+  const currencyCol = findCol(['מטבע']);
+  const installmentCol = findCol(['תשלום', 'תשלומים']);
+  const totalDealCol = findCol(['סכום עסקה מלא', 'סה"כ עסקה']);
+
+  type CcTx = NonNullable<ParseResult['creditCardData']>['transactions'][0];
+  const transactions: CcTx[] = [];
+  const records: FinancialRecord[] = [];
+  let totalCharged = 0;
+
+  for (let i = headerIdx + 1; i < rawRows.length; i++) {
+    const row = rawRows[i] || [];
+    if (row.length < 3) continue;
+
+    // Parse date
+    let dateStr = '';
+    if (dateCol >= 0) {
+      const val = row[dateCol];
+      if (typeof val === 'number' && (val as number) > 40000) {
+        const d = new Date((val as number - 25569) * 86400 * 1000);
+        dateStr = d.toISOString().split('T')[0];
+      } else if (typeof val === 'string' && val.trim()) {
+        dateStr = val.trim();
+      }
+    }
+    if (!dateStr) continue;
+
+    const businessName = businessCol >= 0 ? String(row[businessCol] || '').trim() : '';
+    if (!businessName) continue;
+
+    const amount = amountCol >= 0 ? Math.abs(parseFloat(String(row[amountCol])) || 0) : 0;
+    if (amount === 0) continue;
+
+    const originalAmount = originalAmountCol >= 0 ? Math.abs(parseFloat(String(row[originalAmountCol])) || 0) : amount;
+    const currency = currencyCol >= 0 ? String(row[currencyCol] || 'ILS').trim() : 'ILS';
+
+    // Parse installment info
+    let installmentCurrent = 0;
+    let installmentTotal = 0;
+    let isInstallment = false;
+    if (installmentCol >= 0) {
+      const instText = String(row[installmentCol] || '');
+      const instMatch = instText.match(/(\d+)\s*(?:מתוך|של|\/)\s*(\d+)/);
+      if (instMatch) {
+        installmentCurrent = parseInt(instMatch[1]);
+        installmentTotal = parseInt(instMatch[2]);
+        isInstallment = installmentTotal > 1;
+      } else {
+        const singleNum = instText.match(/(\d+)/);
+        if (singleNum && parseInt(singleNum[1]) > 1) {
+          // Just a number > 1 likely means total installments
+          installmentTotal = parseInt(singleNum[1]);
+          isInstallment = true;
+        }
+      }
+    }
+
+    const totalDealAmount = totalDealCol >= 0 ? Math.abs(parseFloat(String(row[totalDealCol])) || 0) : (isInstallment ? amount * installmentTotal : amount);
+
+    // Auto-categorize
+    const category = categorizeCreditCardBusiness(businessName);
+
+    totalCharged += amount;
+
+    transactions.push({
+      date: dateStr,
+      businessName,
+      category,
+      amount,
+      currency: currency || 'ILS',
+      originalAmount,
+      originalCurrency: currency || 'ILS',
+      installmentCurrent,
+      installmentTotal,
+      totalDealAmount,
+      isInstallment,
+    });
+
+    records.push({
+      id: generateId(),
+      date: dateStr,
+      description: businessName,
+      amount,
+      type: 'expense',
+      category,
+      source: fileName,
+    });
+  }
+
+  return {
+    records,
+    rawData: transactions.map((t, i) => ({
+      line: String(i),
+      content: `${t.date} | ${t.businessName} | ${t.amount}${t.isInstallment ? ` (${t.installmentCurrent}/${t.installmentTotal})` : ''}`,
+    })),
+    headers: ['date', 'business', 'amount', 'installment'],
+    fileName,
+    creditCardData: {
+      cardNumber: cardNumber || '****',
+      cardName,
+      period,
+      totalCharged,
+      transactions,
+    },
+  };
+}
+
+function categorizeCreditCardBusiness(name: string): string {
+  const text = name.toLowerCase();
+  // מזון
+  if (text.includes('שופרסל') || text.includes('רמי לוי') || text.includes('ויקטורי') || text.includes('אושר עד') || text.includes('יוחננוף') || text.includes('חצי חינם') || text.includes('טיב טעם') || text.includes('פרש מרקט') || text.includes('סופר') || text.includes('מכולת')) return 'מזון';
+  // דלק
+  if (text.includes('סונול') || text.includes('פז') || text.includes('דור אלון') || text.includes('דלק') || text.includes('ten') || text.includes('yellow')) return 'רכב-דלק';
+  // מסעדות
+  if (text.includes('מסעדה') || text.includes('קפה') || text.includes('ארומה') || text.includes('סטארבקס') || text.includes('מקדונלד') || text.includes('פיצה') || text.includes('בורגר') || text.includes('rest')) return 'בילוי-מסעדות';
+  // ביגוד
+  if (text.includes('zara') || text.includes('h&m') || text.includes('fox') || text.includes('קסטרו') || text.includes('רנואר') || text.includes('golf') || text.includes('תמנון') || text.includes('נעלי')) return 'ביגוד-קניות';
+  // בריאות
+  if (text.includes('מכבי') || text.includes('כללית') || text.includes('מאוחדת') || text.includes('לאומית') || text.includes('סופר פארם') || text.includes('בית מרקחת')) return 'בריאות';
+  // תקשורת
+  if (text.includes('סלקום') || text.includes('פרטנר') || text.includes('פלאפון') || text.includes('הוט') || text.includes('בזק') || text.includes('גולן') || text.includes('yes') || text.includes('netflix') || text.includes('spotify')) return 'תקשורת-מנויים';
+  // חינוך
+  if (text.includes('ספר') || text.includes('צעצוע') || text.includes('חוגים') || text.includes('גן ילדים')) return 'חינוך';
+  // נסיעות
+  if (text.includes('booking') || text.includes('airbnb') || text.includes('אל על') || text.includes('ישראייר') || text.includes('מלון') || text.includes('hotel')) return 'נסיעות';
+  // אונליין
+  if (text.includes('amazon') || text.includes('aliexpress') || text.includes('ebay') || text.includes('apple') || text.includes('google') || text.includes('paypal')) return 'קניות-אונליין';
+  // ביטוח
+  if (text.includes('ביטוח') || text.includes('הראל') || text.includes('מנורה') || text.includes('הפניקס') || text.includes('כלל') || text.includes('איילון')) return 'ביטוח';
+  return 'אחר';
 }
 
 // ============ CSV ============

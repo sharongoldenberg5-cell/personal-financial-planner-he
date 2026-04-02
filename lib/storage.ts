@@ -1,6 +1,6 @@
 'use client';
 
-import type { AppState, UserProfile, Asset, Liability, MortgageReport, MislakaReport, RetirementGoals, BankAccount, PensionData, FinancialRecord, Goal, Recommendation, UploadedFile } from './types';
+import type { AppState, UserProfile, Asset, Liability, MortgageReport, MislakaReport, RetirementGoals, BankAccount, CreditCardStatement, PensionData, FinancialRecord, Goal, Recommendation, UploadedFile } from './types';
 
 const STORAGE_KEY = 'financial-planner-data';
 
@@ -13,6 +13,7 @@ function getDefaultState(): AppState {
     mislakaReports: [],
     pensionData: [],
     bankAccounts: [],
+    creditCards: [],
     financialRecords: [],
     retirementGoals: null,
     goals: [],
@@ -283,6 +284,28 @@ export function saveBankAccount(account: BankAccount): void {
 export function clearAllBankAccounts(): void {
   const state = loadState();
   state.bankAccounts = [];
+  saveState(state);
+}
+
+export function getCreditCards(): CreditCardStatement[] {
+  return loadState().creditCards || [];
+}
+
+export function saveCreditCard(card: CreditCardStatement): void {
+  const state = loadState();
+  if (!state.creditCards) state.creditCards = [];
+  const dupeIdx = state.creditCards.findIndex(c => c.cardNumber === card.cardNumber && c.period === card.period);
+  if (dupeIdx >= 0) {
+    state.creditCards[dupeIdx] = card;
+  } else {
+    state.creditCards.push(card);
+  }
+  saveState(state);
+}
+
+export function clearAllCreditCards(): void {
+  const state = loadState();
+  state.creditCards = [];
   saveState(state);
 }
 

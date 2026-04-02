@@ -2,13 +2,13 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from '@/lib/translations';
-import { saveFinancialRecords, saveUploadedFile, saveAsset, saveLiability, saveMortgageReport, saveMislakaReport, saveBankAccount, generateId } from '@/lib/storage';
+import { saveFinancialRecords, saveUploadedFile, saveAsset, saveLiability, saveMortgageReport, saveMislakaReport, saveBankAccount, saveCreditCard, generateId } from '@/lib/storage';
 import { formatCurrency } from '@/lib/utils';
 import type { FinancialRecord, Asset, Liability, MortgageReport as MortgageReportType, MislakaReport } from '@/lib/types';
 import {
   Upload, FileSpreadsheet, CheckCircle, AlertCircle, X,
   FileText, FileArchive, File as FileIcon, Wallet, TrendingDown,
-  ChevronDown, ChevronUp, Shield, Building, BarChart3,
+  ChevronDown, ChevronUp, Shield, Building, BarChart3, CreditCard,
 } from 'lucide-react';
 
 interface MortgageSubLoan {
@@ -45,6 +45,26 @@ interface BankAccountData {
   }[];
 }
 
+interface CreditCardData {
+  cardNumber: string;
+  cardName: string;
+  period: string;
+  totalCharged: number;
+  transactions: {
+    date: string;
+    businessName: string;
+    category: string;
+    amount: number;
+    currency: string;
+    originalAmount: number;
+    originalCurrency: string;
+    installmentCurrent: number;
+    installmentTotal: number;
+    totalDealAmount: number;
+    isInstallment: boolean;
+  }[];
+}
+
 interface ParseResult {
   records: FinancialRecord[];
   rawData: Record<string, string>[];
@@ -54,6 +74,7 @@ interface ParseResult {
   mortgageReport?: MortgageReport;
   mislakaData?: MislakaData;
   bankAccountData?: BankAccountData;
+  creditCardData?: CreditCardData;
 }
 
 interface ZipParseResult {
@@ -75,6 +96,7 @@ interface FileResult {
   liabilityCreated: boolean;
   assetCreated: boolean;
   bankAccountSaved: boolean;
+  creditCardSaved: boolean;
   processing?: boolean;
 }
 
@@ -257,6 +279,7 @@ export default function UploadPage() {
       liabilityCreated: false,
       assetCreated: false,
       bankAccountSaved: false,
+      creditCardSaved: false,
       processing: true,
     }));
     setFileResults(prev => [...prev, ...placeholders]);
@@ -423,6 +446,22 @@ export default function UploadPage() {
       importDate: new Date().toISOString(),
     });
     setFileResults(prev => prev.map(f => f.id === fr.id ? { ...f, bankAccountSaved: true } : f));
+  };
+
+  const handleSaveCreditCard = (fr: FileResult) => {
+    const ccData = fr.result?.creditCardData;
+    if (!ccData || ccData.transactions.length === 0) return;
+    saveCreditCard({
+      id: fr.id,
+      cardNumber: ccData.cardNumber,
+      cardName: ccData.cardName,
+      owner: 'client',
+      period: ccData.period,
+      totalCharged: ccData.totalCharged,
+      transactions: ccData.transactions,
+      importDate: new Date().toISOString(),
+    });
+    setFileResults(prev => prev.map(f => f.id === fr.id ? { ...f, creditCardSaved: true } : f));
   };
 
   const removeFile = (id: string) => {
@@ -604,6 +643,8 @@ export default function UploadPage() {
                           <span>{t('upload.mortgageReport')} • {formatCurrency(mortgage.totalBalance)}</span>
                         ) : bankData ? (
                           <span>תנועות בנק • {bankData.transactions.length} תנועות</span>
+                        ) : fr.result?.creditCardData ? (
+                          <span>כרטיס אשראי {fr.result.creditCardData.cardName} • {fr.result.creditCardData.transactions.length} עסקאות</span>
                         ) : (
                           <span>{totalRecords} {t('upload.records')}</span>
                         )}
@@ -611,6 +652,7 @@ export default function UploadPage() {
                         {fr.liabilityCreated && <span className="text-danger ms-2">✓ {t('upload.liabilityCreated')}</span>}
                         {fr.assetCreated && <span className="text-primary ms-2">✓ {t('upload.assetCreated')}</span>}
                         {fr.bankAccountSaved && <span className="text-blue-600 ms-2">✓ תנועות יובאו</span>}
+                        {fr.creditCardSaved && <span className="text-purple-600 ms-2">✓ כרטיס אשראי יובא</span>}
                       </p>
                     </div>
                   </div>
@@ -747,6 +789,86 @@ export default function UploadPage() {
                       </div>
                     )}
 
+                    {/* Credit Card Statement Preview */}
+                    {fr.result?.creditCardData && fr.result.creditCardData.transactions.length > 0 && (() => {
+                      const ccData = fr.result.creditCardData!;
+                      const installmentTxs = ccData.transactions.filter(t => t.isInstallment);
+                      const installmentTotal = installmentTxs.reduce((s, t) => s + t.totalDealAmount, 0);
+                      return (
+                        <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                          <h3 className="text-base font-bold text-purple-800 mb-3 flex items-center gap-2">
+                            <CreditCard size={18} /> דוח כרטיס אשראי
+                          </h3>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                            <div className="bg-white rounded-lg p-2.5 text-center">
+                              <p className="text-xs text-text-light">כרטיס</p>
+                              <p className="font-semibold text-sm">{ccData.cardName}</p>
+                            </div>
+                            <div className="bg-white rounded-lg p-2.5 text-center">
+                              <p className="text-xs text-text-light">מספר</p>
+                              <p className="font-semibold text-sm">****{ccData.cardNumber}</p>
+                            </div>
+                            <div className="bg-white rounded-lg p-2.5 text-center">
+                              <p className="text-xs text-text-light">תקופה</p>
+                              <p className="font-semibold text-sm">{ccData.period}</p>
+                            </div>
+                            <div className="bg-white rounded-lg p-2.5 text-center">
+                              <p className="text-xs text-text-light">סה"כ חיוב</p>
+                              <p className="font-semibold text-sm text-purple-700">{formatCurrency(ccData.totalCharged)}</p>
+                            </div>
+                          </div>
+                          {/* Installment warning */}
+                          {installmentTxs.length > 0 && (
+                            <div className="bg-orange-100 border border-orange-300 rounded-lg p-3 mb-3">
+                              <p className="text-sm font-semibold text-orange-800">⚠️ {installmentTxs.length} עסקאות בתשלומים</p>
+                              <p className="text-xs text-orange-700 mt-1">
+                                סה"כ עסקאות בתשלומים: {formatCurrency(installmentTotal)} | חיוב חודשי: {formatCurrency(installmentTxs.reduce((s, t) => s + t.amount, 0))}
+                              </p>
+                            </div>
+                          )}
+                          {/* Sample transactions */}
+                          <table className="w-full text-xs mb-3">
+                            <thead>
+                              <tr className="border-b border-purple-200 text-text-light">
+                                <th className="px-1.5 py-1 text-start">תאריך</th>
+                                <th className="px-1.5 py-1 text-start">בית עסק</th>
+                                <th className="px-1.5 py-1 text-end">סכום</th>
+                                <th className="px-1.5 py-1 text-start">תשלומים</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {ccData.transactions.slice(0, 5).map((t, i) => (
+                                <tr key={i} className="border-b border-purple-100">
+                                  <td className="px-1.5 py-1">{t.date}</td>
+                                  <td className="px-1.5 py-1">{t.businessName}</td>
+                                  <td className="px-1.5 py-1 text-end text-purple-700">{formatCurrency(t.amount)}</td>
+                                  <td className="px-1.5 py-1">
+                                    {t.isInstallment ? (
+                                      <span className="text-orange-600 font-medium">{t.installmentCurrent}/{t.installmentTotal}</span>
+                                    ) : 'רגילה'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {ccData.transactions.length > 5 && (
+                            <p className="text-xs text-purple-600 mb-3">... +{ccData.transactions.length - 5} עסקאות נוספות</p>
+                          )}
+                          {!fr.creditCardSaved ? (
+                            <button onClick={() => handleSaveCreditCard(fr)}
+                              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm">
+                              <CreditCard size={16} /> ייבא דוח כרטיס אשראי
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-2 text-purple-700 text-sm">
+                              <CheckCircle size={16} />
+                              <span>דוח כרטיס האשראי יובא בהצלחה</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     {/* ZIP file list */}
                     {fr.zipResult && (
                       <div className="mb-4 space-y-2">
@@ -814,7 +936,7 @@ export default function UploadPage() {
                     )}
 
                     {/* Action Buttons */}
-                    {(records.length > 0 || mortgage) && !bankData && (
+                    {(records.length > 0 || mortgage) && !bankData && !fr.result?.creditCardData && (
                       <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
                         {records.length > 0 && !fr.imported && (
                           <button onClick={() => handleImport(fr)}

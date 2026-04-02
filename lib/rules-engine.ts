@@ -1,4 +1,4 @@
-import type { UserProfile, Asset, Liability, PensionData, Goal, Recommendation, RetirementGoals, MislakaReport, BankAccount, MortgageReport } from './types';
+import type { UserProfile, Asset, Liability, PensionData, Goal, Recommendation, RetirementGoals, MislakaReport, BankAccount, MortgageReport, CreditCardStatement } from './types';
 import { generateId } from './storage';
 
 interface AnalysisInput {
@@ -11,6 +11,7 @@ interface AnalysisInput {
   mislakaReports?: MislakaReport[];
   bankAccounts?: BankAccount[];
   mortgageReports?: MortgageReport[];
+  creditCards?: CreditCardStatement[];
 }
 
 const PENSION_TYPES = ['pension', 'managers-insurance', 'provident'];
@@ -512,27 +513,8 @@ export function generateRuleBasedRecommendations(input: AnalysisInput): Recommen
       }
     }
 
-    // Rule: Credit card dependency
-    const ccTotal = txByCategory['כרטיס-אשראי'] || 0;
-    if (ccTotal > 0 && txTotalExpenses > 0) {
-      const ccPct = (ccTotal / txTotalExpenses) * 100;
-      if (ccPct > 50) {
-        recommendations.push({
-          id: generateId(),
-          title: 'תלות גבוהה בכרטיסי אשראי',
-          description: `${ccPct.toFixed(0)}% מההוצאות שלך (${ccTotal.toLocaleString()} ₪) עוברות דרך כרטיסי אשראי. קשה לעקוב אחרי הוצאות בודדות.`,
-          category: 'general',
-          priority: 'medium',
-          source: 'rules',
-          actionItems: [
-            'בדוק את פירוט כרטיס האשראי - הסכום כולל הוצאות רבות שלא מפורטות',
-            'שקול להשתמש בכרטיס חיוב מיידי (דביט) לשליטה טובה יותר',
-            'הגדר תקרת הוצאה חודשית לכרטיס האשראי',
-          ],
-          createdAt: now,
-        });
-      }
-    }
+    // Note: Credit card usage is fine as a payment method.
+    // Installment purchases are the real issue - handled in credit card statement analysis below.
 
     // Rule: Actual savings rate from transactions
     if (txTotalIncome > 0) {
@@ -878,6 +860,102 @@ export function generateRuleBasedRecommendations(input: AnalysisInput): Recommen
             'בדוק שההפרשה מחושבת על השכר הברוטו המלא',
             'ייתכן שחלק מההפרשות לא עוברות דרך חשבון הבנק (הפרשות מעסיק)',
             'שקול הגדלת ההפרשה מעבר למינימום',
+          ],
+          createdAt: now,
+        });
+      }
+    }
+  }
+
+  // ==================================================================
+  // SECTION 11: CREDIT CARD INSTALLMENT ANALYSIS
+  // ==================================================================
+
+  const creditCards = input.creditCards || [];
+  const allCcTransactions = creditCards.flatMap(c => c.transactions);
+  const installmentTxs = allCcTransactions.filter(t => t.isInstallment);
+
+  if (installmentTxs.length > 0) {
+    const totalInstallmentDebt = installmentTxs.reduce((s, t) => s + t.totalDealAmount, 0);
+    const monthlyInstallmentCharge = installmentTxs.reduce((s, t) => s + t.amount, 0);
+    const avgInstallments = installmentTxs.reduce((s, t) => s + t.installmentTotal, 0) / installmentTxs.length;
+
+    // Main installment warning
+    recommendations.push({
+      id: generateId(),
+      title: 'עסקאות בתשלומים - חוב נסתר',
+      description: `${installmentTxs.length} עסקאות בתשלומים | חוב כולל: ${totalInstallmentDebt.toLocaleString()} ₪ | חיוב חודשי: ${monthlyInstallmentCharge.toLocaleString()} ₪ | ממוצע ${avgInstallments.toFixed(0)} תשלומים לעסקה.`,
+      category: 'general',
+      priority: totalInstallmentDebt > familyNetIncome * 2 ? 'high' : totalInstallmentDebt > familyNetIncome ? 'medium' : 'low',
+      source: 'rules',
+      actionItems: [
+        'תשלומים מייצרים חוב שלא משתקף בתזרים השוטף',
+        'כל עסקה בתשלומים היא למעשה הלוואה - גם אם "בלי ריבית"',
+        'מומלץ לשלם באופן מלא ולא בתשלומים',
+        `החוב הנסתר שלך: ${totalInstallmentDebt.toLocaleString()} ₪ - זה כסף שכבר הוצאת אבל עדיין לא שילמת`,
+      ],
+      createdAt: now,
+    });
+
+    // Large installment deals
+    const largeDeal = installmentTxs
+      .filter(t => t.totalDealAmount > 2000)
+      .sort((a, b) => b.totalDealAmount - a.totalDealAmount);
+    if (largeDeal.length > 0) {
+      const top5 = largeDeal.slice(0, 5);
+      recommendations.push({
+        id: generateId(),
+        title: 'עסקאות גדולות בתשלומים',
+        description: `${largeDeal.length} עסקאות גדולות (מעל 2,000 ₪) בתשלומים. סה"כ: ${largeDeal.reduce((s, t) => s + t.totalDealAmount, 0).toLocaleString()} ₪.`,
+        category: 'savings',
+        priority: 'medium',
+        source: 'rules',
+        actionItems: top5.map(t =>
+          `${t.businessName}: ${t.totalDealAmount.toLocaleString()} ₪ ב-${t.installmentTotal} תשלומים (${t.installmentCurrent}/${t.installmentTotal})`
+        ),
+        createdAt: now,
+      });
+    }
+
+    // Installment-to-income ratio
+    if (familyNetIncome > 0) {
+      const instPct = (monthlyInstallmentCharge / familyNetIncome) * 100;
+      if (instPct > 15) {
+        recommendations.push({
+          id: generateId(),
+          title: 'חיוב תשלומים גבוה ביחס להכנסה',
+          description: `${instPct.toFixed(0)}% מההכנסה (${monthlyInstallmentCharge.toLocaleString()} ₪/חודש) הולך לתשלומים. זה מצמצם את גמישות התקציב.`,
+          category: 'general',
+          priority: instPct > 25 ? 'high' : 'medium',
+          source: 'rules',
+          actionItems: [
+            'הימנע מעסקאות חדשות בתשלומים עד שהמצב משתפר',
+            'שקול לפרוע חלק מהתשלומים מוקדם',
+            'הגדר כלל: אם אין כסף לשלם בפעם אחת - אל תקנה',
+          ],
+          createdAt: now,
+        });
+      }
+    }
+  }
+
+  // Per-card summary
+  for (const card of creditCards) {
+    const cardInstallments = card.transactions.filter(t => t.isInstallment);
+    if (cardInstallments.length > 0) {
+      const ratio = cardInstallments.length / card.transactions.length;
+      if (ratio > 0.3) {
+        recommendations.push({
+          id: generateId(),
+          title: `ריבוי תשלומים - ${card.cardName} ****${card.cardNumber}`,
+          description: `${(ratio * 100).toFixed(0)}% מהעסקאות בכרטיס הן בתשלומים (${cardInstallments.length} מתוך ${card.transactions.length}). דפוס התנהלות שמייצר חוב מצטבר.`,
+          category: 'general',
+          priority: ratio > 0.5 ? 'high' : 'medium',
+          source: 'rules',
+          actionItems: [
+            'ריבוי עסקאות בתשלומים מעיד על רכישות מעבר ליכולת',
+            'תשלומים "בלי ריבית" עדיין מייצרים חוב',
+            'שנה הרגל: שלם רק בתשלום אחד (מיידי)',
           ],
           createdAt: now,
         });

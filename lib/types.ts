@@ -191,6 +191,31 @@ export interface BankAccount {
   importDate: string;
 }
 
+export interface CreditCardTransaction {
+  date: string;
+  businessName: string;
+  category: string;
+  amount: number;
+  currency: string;
+  originalAmount: number;
+  originalCurrency: string;
+  installmentCurrent: number;  // e.g. 3 of 12
+  installmentTotal: number;    // e.g. 12
+  totalDealAmount: number;     // full deal amount
+  isInstallment: boolean;
+}
+
+export interface CreditCardStatement {
+  id: string;
+  cardNumber: string;  // last 4 digits
+  cardName: string;    // e.g. "ויזה כאל", "ישראכרט"
+  owner: string;
+  period: string;      // e.g. "01/2024"
+  totalCharged: number;
+  transactions: CreditCardTransaction[];
+  importDate: string;
+}
+
 export type GoalPriority = 'high' | 'medium' | 'low';
 export type GoalStatus = 'active' | 'completed' | 'paused';
 
@@ -255,5 +280,6 @@ export interface AppState {
   goals: Goal[];
   recommendations: Recommendation[];
   bankAccounts: BankAccount[];
+  creditCards: CreditCardStatement[];
   uploadedFiles: UploadedFile[];
 }
