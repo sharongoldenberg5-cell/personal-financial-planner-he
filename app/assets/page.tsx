@@ -104,18 +104,23 @@ export default function AssetsPage() {
         {chartData.length > 0 && (
           <div className="bg-surface rounded-xl shadow-sm border border-border p-6">
             <h2 className="text-lg font-semibold mb-4">{t('dashboard.assetDistribution')}</h2>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={chartData} cx="50%" cy="50%" outerRadius={70} dataKey="value"
-                  label={({ name, percent }: any) => `${name || ''} ${(((percent || 0)) * 100).toFixed(0)}%`}
-                  labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
-                  fontSize={10}
-                >
+                <Pie data={chartData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={false}>
                   {chartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={(val) => fmtCur(Number(val))} />
               </PieChart>
             </ResponsiveContainer>
+            <div className="grid grid-cols-2 gap-1 mt-2">
+              {chartData.map((d, i) => (
+                <div key={i} className="flex items-center gap-1.5 text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                  <span className="truncate">{d.name}</span>
+                  <span className="text-text-light ms-auto">{fmtCur(d.value)}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

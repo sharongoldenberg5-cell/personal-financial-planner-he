@@ -389,18 +389,23 @@ export default function TransactionsPage() {
           {/* Pie chart */}
           {expensePieData.length > 0 && (
             <div>
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
-                  <Pie data={expensePieData} cx="50%" cy="50%" outerRadius={70} innerRadius={30} dataKey="value"
-                    label={({ name, percent }: any) => `${name || ''} ${(((percent || 0)) * 100).toFixed(0)}%`}
-                    labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
-                    fontSize={9}
-                  >
+                  <Pie data={expensePieData} cx="50%" cy="50%" outerRadius={85} innerRadius={35} dataKey="value" label={false}>
                     {expensePieData.map((d, i) => <Cell key={i} fill={d.color || PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(val) => fmtCur(Number(val))} />
                 </PieChart>
               </ResponsiveContainer>
+              <div className="grid grid-cols-2 gap-1 mt-2">
+                {expensePieData.map((d, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-xs">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
+                    <span className="truncate">{d.name}</span>
+                    <span className="text-text-light ms-auto">{totalExpenses > 0 ? Math.round(d.value / totalExpenses * 100) : 0}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -409,9 +414,9 @@ export default function TransactionsPage() {
             <div>
               <h3 className="text-sm font-medium text-text-light mb-2">הוצאות לפי קבוצה</h3>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={groupBarData} layout="vertical" margin={{ left: 10, right: 30 }}>
-                  <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
+                <BarChart data={groupBarData} layout="vertical" margin={{ left: 20, right: 10 }}>
+                  <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `₪${(v / 1000).toFixed(0)}K`} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#374151' }} width={70} mirror={false} />
                   <Tooltip formatter={(val) => fmtCur(Number(val))} />
                   <Bar dataKey="value" fill="#dc2626" radius={[0, 4, 4, 0]} />
                 </BarChart>
