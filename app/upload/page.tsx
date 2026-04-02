@@ -540,29 +540,59 @@ export default function UploadPage() {
         </label>
       </div>
 
+      {/* Supported file types info */}
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-surface border border-border rounded-xl p-3 flex items-start gap-3">
+          <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
+            <Shield size={18} className="text-blue-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">דוחות מסלקה</p>
+            <p className="text-[10px] text-text-light">פנסיה, ביטוח מנהלים, קופות גמל</p>
+          </div>
+        </div>
+        <div className="bg-surface border border-border rounded-xl p-3 flex items-start gap-3">
+          <div className="bg-green-100 p-2 rounded-lg flex-shrink-0">
+            <Building size={18} className="text-green-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">דוחות בנק</p>
+            <p className="text-[10px] text-text-light">משכנתא, תנועות חשבון (Excel)</p>
+          </div>
+        </div>
+        <div className="bg-surface border border-border rounded-xl p-3 flex items-start gap-3">
+          <div className="bg-purple-100 p-2 rounded-lg flex-shrink-0">
+            <CreditCard size={18} className="text-purple-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">דוחות כרטיסי אשראי</p>
+            <p className="text-[10px] text-text-light">פירוט עסקאות, זיהוי תשלומים</p>
+          </div>
+        </div>
+      </div>
+
       {/* External services links */}
       <div className="mt-4 space-y-3">
-        {/* Main services */}
-        <div>
-          <a href="https://www.swiftness.co.il/" target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
-            <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
-              <Shield size={20} className="text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">{t('upload.mislakaLink')}</p>
-              <p className="text-[10px] text-text-light">{t('upload.mislakaLinkDesc')}</p>
-            </div>
-          </a>
-        </div>
+        {/* Mislaka */}
+        <a href="https://www.swiftness.co.il/" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors">
+          <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
+            <Shield size={20} className="text-blue-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">{t('upload.mislakaLink')}</p>
+            <p className="text-[10px] text-text-light">{t('upload.mislakaLinkDesc')}</p>
+          </div>
+        </a>
 
-        {/* Banks - mortgage settlement reports */}
+        {/* Banks - mortgage + account transactions */}
         <details className="bg-surface border border-border rounded-xl">
           <summary className="p-3 cursor-pointer hover:bg-background/50 transition-colors flex items-center gap-2">
-            <Building size={18} className="text-primary" />
-            <span className="text-sm font-medium">{t('upload.banksTitle')}</span>
-            <span className="text-[10px] text-text-light">({t('upload.banksDesc')})</span>
+            <Building size={18} className="text-green-600" />
+            <span className="text-sm font-medium">בנקים</span>
+            <span className="text-[10px] text-text-light">(דוחות משכנתא, תנועות חשבון)</span>
           </summary>
+          <p className="px-3 text-[10px] text-text-light mb-2">היכנס לבנק שלך והורד: דוח יתרת משכנתא (PDF) + תנועות חשבון עו"ש (Excel)</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3 pt-0">
             {[
               { name: 'בנק הפועלים', url: 'https://www.bankhapoalim.co.il/' },
@@ -571,11 +601,38 @@ export default function UploadPage() {
               { name: 'מזרחי טפחות', url: 'https://www.mizrahi-tefahot.co.il/' },
               { name: 'הבינלאומי (FIBI)', url: 'https://www.fibi.co.il/' },
               { name: 'בנק ירושלים', url: 'https://www.bankjerusalem.co.il/' },
+              { name: 'וואן זירו (ONE ZERO)', url: 'https://www.onezerobank.com/' },
             ].map(bank => (
               <a key={bank.name} href={bank.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 p-2 bg-background rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm">
+                className="flex items-center gap-2 p-2 bg-background rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors text-sm">
                 <Building size={14} className="text-text-light flex-shrink-0" />
                 {bank.name}
+              </a>
+            ))}
+          </div>
+        </details>
+
+        {/* Credit Card companies */}
+        <details className="bg-surface border border-border rounded-xl">
+          <summary className="p-3 cursor-pointer hover:bg-background/50 transition-colors flex items-center gap-2">
+            <CreditCard size={18} className="text-purple-600" />
+            <span className="text-sm font-medium">חברות כרטיסי אשראי</span>
+            <span className="text-[10px] text-text-light">(דוחות פירוט עסקאות)</span>
+          </summary>
+          <p className="px-3 text-[10px] text-text-light mb-2">היכנס לאתר חברת האשראי שלך והורד דוח פירוט עסקאות בפורמט Excel</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3 pt-0">
+            {[
+              { name: 'כאל (CAL)', url: 'https://www.cal-online.co.il/' },
+              { name: 'ישראכרט', url: 'https://www.isracard.co.il/' },
+              { name: 'מקס (MAX)', url: 'https://www.max.co.il/' },
+              { name: 'לאומי קארד', url: 'https://www.leumi-card.co.il/' },
+              { name: 'אמריקן אקספרס', url: 'https://www.americanexpress.co.il/' },
+              { name: 'דיינרס', url: 'https://www.diners.co.il/' },
+            ].map(cc => (
+              <a key={cc.name} href={cc.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 p-2 bg-background rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors text-sm">
+                <CreditCard size={14} className="text-text-light flex-shrink-0" />
+                {cc.name}
               </a>
             ))}
           </div>
