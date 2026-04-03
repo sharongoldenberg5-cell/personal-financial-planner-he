@@ -192,6 +192,34 @@ export interface BankAccount {
   importDate: string;
 }
 
+// Insurance from הר הביטוח
+export type InsuranceBranch = 'health' | 'nursing' | 'disability' | 'life';
+
+export interface InsurancePolicy {
+  idNumber: string;
+  mainBranch: string;        // ענף ראשי
+  subBranch: string;         // ענף משני
+  productType: string;       // סוג מוצר
+  company: string;           // חברה
+  period: string;            // תקופת ביטוח
+  details: string;           // פרטים נוספים
+  premium: number;           // פרמיה
+  premiumType: string;       // סוג פרמיה (חודשית/שנתית)
+  monthlyPremium: number;    // פרמיה מנורמלת לחודשי
+  policyNumber: string;      // מספר פוליסה
+  planType: string;          // סיווג תכנית
+  branch: InsuranceBranch;   // קטגוריה מנורמלת
+}
+
+export interface InsuranceReport {
+  id: string;
+  owner: string;
+  ownerIdNumber: string;
+  reportDate: string;
+  policies: InsurancePolicy[];
+  importDate: string;
+}
+
 export interface CreditCardTransaction {
   date: string;
   businessName: string;
@@ -288,5 +316,6 @@ export interface AppState {
   recommendations: Recommendation[];
   bankAccounts: BankAccount[];
   creditCards: CreditCardStatement[];
+  insuranceReports: InsuranceReport[];
   uploadedFiles: UploadedFile[];
 }

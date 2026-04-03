@@ -88,6 +88,25 @@ interface ParseResult {
       isInstallment: boolean;
     }[];
   };
+  insuranceData?: {
+    ownerIdNumber: string;
+    reportDate: string;
+    policies: {
+      idNumber: string;
+      mainBranch: string;
+      subBranch: string;
+      productType: string;
+      company: string;
+      period: string;
+      details: string;
+      premium: number;
+      premiumType: string;
+      monthlyPremium: number;
+      policyNumber: string;
+      planType: string;
+      branch: string;
+    }[];
+  };
 }
 
 interface MortgageSubLoan {
@@ -261,6 +280,14 @@ function parseExcelFile(buffer: ArrayBuffer, fileName: string): ParseResult {
 
     if (isCreditCard) {
       return parseCreditCardStatement(rawRows, fileName);
+    }
+
+    // Detect הר הביטוח insurance file
+    const isInsurance = firstRows.some(r => r.includes('הר הביטוח')) ||
+      first30Rows.some(r => r.includes('התיק הביטוחי') || (r.includes('ענף ראשי') && r.includes('פרמיה')));
+
+    if (isInsurance) {
+      return parseInsuranceReport(workbook, fileName);
     }
 
     const rawData = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
@@ -721,6 +748,113 @@ function categorizeCreditCardBusiness(name: string): string {
   // דמי כרטיס
   if (text.includes('דמי כרטיס') || text.includes('הנפקה') || text.includes('עמלת')) return 'עמלות';
   return 'אחר';
+}
+
+// ============ Insurance (הר הביטוח) ============
+function parseInsuranceReport(workbook: XLSX.WorkBook, fileName: string): ParseResult {
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+  // Read all cells directly (sheet_to_json misses rows due to range issues)
+  const allCells: Record<string, string | number> = {};
+  let maxRow = 0;
+  for (const key of Object.keys(sheet)) {
+    if (key.startsWith('!')) continue;
+    const match = key.match(/^([A-K])(\d+)$/);
+    if (match) {
+      const row = parseInt(match[2]);
+      if (row > maxRow) maxRow = row;
+      allCells[key] = sheet[key].v ?? sheet[key].w ?? '';
+    }
+  }
+
+  // Extract report date
+  let reportDate = '';
+  const fCell = allCells['F2'];
+  if (fCell) reportDate = String(fCell);
+
+  // Column mapping: A=תעודת זהות B=ענף ראשי C=ענף משני D=סוג מוצר E=חברה F=תקופת ביטוח G=פרטים H=פרמיה I=סוג פרמיה J=מספר פוליסה K=סיווג
+  const getCell = (col: string, row: number) => String(allCells[`${col}${row}`] ?? '').trim();
+  const getNum = (col: string, row: number) => parseFloat(String(allCells[`${col}${row}`] ?? '0')) || 0;
+
+  // Branches we care about (ignore כללי = car, home, business)
+  const relevantBranches: Record<string, string> = {
+    'ביטוח סיעודי': 'nursing',
+    'ביטוח בריאות': 'health',
+    'תאונות אישיות': 'health',
+    'כתב שירות': 'health',
+    'אבדן כושר עבודה': 'disability',
+    'ביטוח חיים': 'life',
+  };
+
+  // Section headers to skip
+  const sectionHeaders = ['תחום -', 'תחום-'];
+
+  let ownerIdNumber = '';
+  const policies: ParseResult['insuranceData'] extends undefined ? never : NonNullable<ParseResult['insuranceData']>['policies'] = [];
+  const records: FinancialRecord[] = [];
+
+  for (let row = 5; row <= maxRow; row++) {
+    const mainBranch = getCell('B', row);
+    if (!mainBranch) continue;
+
+    // Skip section headers
+    if (sectionHeaders.some(h => mainBranch.startsWith(h))) continue;
+
+    // Skip general insurance (car, home, business)
+    const branch = relevantBranches[mainBranch];
+    if (!branch) continue;
+
+    const idNumber = getCell('A', row);
+    if (idNumber && !ownerIdNumber) ownerIdNumber = idNumber;
+
+    const premium = getNum('H', row);
+    const premiumType = getCell('I', row);
+    // Normalize to monthly
+    const monthlyPremium = premiumType === 'שנתית' ? Math.round((premium / 12) * 100) / 100 : premium;
+
+    const policy = {
+      idNumber: idNumber || ownerIdNumber,
+      mainBranch,
+      subBranch: getCell('C', row),
+      productType: getCell('D', row),
+      company: getCell('E', row),
+      period: getCell('F', row),
+      details: getCell('G', row),
+      premium,
+      premiumType,
+      monthlyPremium,
+      policyNumber: getCell('J', row),
+      planType: getCell('K', row),
+      branch,
+    };
+
+    policies.push(policy);
+
+    records.push({
+      id: generateId(),
+      date: reportDate,
+      description: `${mainBranch} - ${policy.subBranch} | ${policy.company}`,
+      amount: monthlyPremium,
+      type: 'expense',
+      category: 'ביטוח',
+      source: fileName,
+    });
+  }
+
+  return {
+    records,
+    rawData: policies.map((p, i) => ({
+      line: String(i),
+      content: `${p.mainBranch} | ${p.subBranch} | ${p.company} | ${p.monthlyPremium}₪/חודש`,
+    })),
+    headers: ['branch', 'subBranch', 'company', 'premium'],
+    fileName,
+    insuranceData: {
+      ownerIdNumber,
+      reportDate,
+      policies,
+    },
+  };
 }
 
 // ============ CSV ============

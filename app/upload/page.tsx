@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from '@/lib/translations';
-import { saveFinancialRecords, saveUploadedFile, saveAsset, saveLiability, saveMortgageReport, saveMislakaReport, saveBankAccount, saveCreditCard, generateId } from '@/lib/storage';
+import { saveFinancialRecords, saveUploadedFile, saveAsset, saveLiability, saveMortgageReport, saveMislakaReport, saveBankAccount, saveCreditCard, saveInsuranceReport, generateId } from '@/lib/storage';
 import { formatCurrency } from '@/lib/utils';
 import type { FinancialRecord, Asset, Liability, MortgageReport as MortgageReportType, MislakaReport } from '@/lib/types';
 import {
@@ -75,6 +75,11 @@ interface ParseResult {
   mislakaData?: MislakaData;
   bankAccountData?: BankAccountData;
   creditCardData?: CreditCardData;
+  insuranceData?: {
+    ownerIdNumber: string;
+    reportDate: string;
+    policies: { idNumber: string; mainBranch: string; subBranch: string; productType: string; company: string; period: string; details: string; premium: number; premiumType: string; monthlyPremium: number; policyNumber: string; planType: string; branch: string; }[];
+  };
 }
 
 interface ZipParseResult {
@@ -214,6 +219,7 @@ export default function UploadPage() {
   const savedMislakaIds = useRef<Set<string>>(new Set());
   const savedBankAccountIds = useRef<Set<string>>(new Set());
   const savedCreditCardIds = useRef<Set<string>>(new Set());
+  const savedInsuranceIds = useRef<Set<string>>(new Set());
   useEffect(() => {
     for (const fr of fileResults) {
       if (fr.processing) continue;
@@ -273,6 +279,12 @@ export default function UploadPage() {
       if (ccData && ccData.transactions.length > 0 && !savedCreditCardIds.current.has(fr.id)) {
         saveCreditCard({ id: fr.id, cardNumber: ccData.cardNumber, cardName: ccData.cardName, owner: 'client', period: ccData.period, totalCharged: ccData.totalCharged, transactions: ccData.transactions, importDate: new Date().toISOString() });
         savedCreditCardIds.current.add(fr.id);
+      }
+      // Insurance data (הר הביטוח)
+      const insData = fr.result?.insuranceData;
+      if (insData && insData.policies.length > 0 && !savedInsuranceIds.current.has(fr.id)) {
+        saveInsuranceReport({ id: fr.id, owner: 'client', ownerIdNumber: insData.ownerIdNumber, reportDate: insData.reportDate, policies: insData.policies as any, importDate: new Date().toISOString() });
+        savedInsuranceIds.current.add(fr.id);
       }
     }
   }, [fileResults]);

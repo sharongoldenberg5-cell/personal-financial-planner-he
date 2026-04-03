@@ -20,6 +20,7 @@ import {
   X,
   ArrowLeftRight,
   LogOut,
+  HeartPulse,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { useDataSync } from '@/lib/use-sync';
@@ -30,6 +31,7 @@ const navItems = [
   { key: 'assets', href: '/assets', icon: Wallet },
   { key: 'liabilities', href: '/liabilities', icon: CreditCard },
   { key: 'pension', href: '/pension', icon: Shield },
+  { key: 'insurance', href: '/insurance', icon: HeartPulse },
   { key: 'mortgage', href: '/mortgage', icon: Building },
   { key: 'transactions', href: '/transactions', icon: ArrowLeftRight },
   { key: 'upload', href: '/upload', icon: Upload },

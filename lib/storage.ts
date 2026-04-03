@@ -1,6 +1,6 @@
 'use client';
 
-import type { AppState, UserProfile, Asset, Liability, MortgageReport, MislakaReport, RetirementGoals, BankAccount, CreditCardStatement, PensionData, FinancialRecord, Goal, Recommendation, UploadedFile } from './types';
+import type { AppState, UserProfile, Asset, Liability, MortgageReport, MislakaReport, RetirementGoals, BankAccount, CreditCardStatement, InsuranceReport, PensionData, FinancialRecord, Goal, Recommendation, UploadedFile } from './types';
 const STORAGE_KEY = 'financial-planner-data';
 
 // Background sync to DB via API route (fire and forget)
@@ -34,6 +34,7 @@ function getDefaultState(): AppState {
     pensionData: [],
     bankAccounts: [],
     creditCards: [],
+    insuranceReports: [],
     financialRecords: [],
     retirementGoals: null,
     goals: [],
@@ -323,6 +324,26 @@ export function saveCreditCard(card: CreditCardStatement): void {
 export function clearAllCreditCards(): void {
   const state = loadState();
   state.creditCards = [];
+  saveState(state);
+}
+
+// Insurance Reports (הר הביטוח)
+export function getInsuranceReports(): InsuranceReport[] {
+  return loadState().insuranceReports || [];
+}
+
+export function saveInsuranceReport(report: InsuranceReport): void {
+  const state = loadState();
+  if (!state.insuranceReports) state.insuranceReports = [];
+  const dupeIdx = state.insuranceReports.findIndex(r => r.ownerIdNumber === report.ownerIdNumber);
+  if (dupeIdx >= 0) { state.insuranceReports[dupeIdx] = report; } else { state.insuranceReports.push(report); }
+  saveState(state);
+  syncProfileToDb();
+}
+
+export function clearAllInsuranceReports(): void {
+  const state = loadState();
+  state.insuranceReports = [];
   saveState(state);
 }
 
