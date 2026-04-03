@@ -328,11 +328,24 @@ export default function UploadPage() {
         if (data.status === 'done') {
           // Fast file (Excel/CSV) - result came back immediately
           const apiResult: ApiResponse = data.result;
+          const singleResult = apiResult.type === 'single' ? apiResult.data : null;
+          // Auto-save immediately (don't wait for effect)
+          if (singleResult?.mortgageReport?.subLoans?.length) {
+            saveMortgageReport({ ...singleResult.mortgageReport, id: placeholderId });
+          }
+          if (singleResult?.bankAccountData?.transactions?.length) {
+            saveBankAccount({ id: placeholderId, accountNumber: singleResult.bankAccountData.accountNumber, bank: singleResult.bankAccountData.bank, type: 'personal' as const, owner: 'client', period: singleResult.bankAccountData.period, transactions: singleResult.bankAccountData.transactions, importDate: new Date().toISOString() });
+          }
+          if (singleResult?.creditCardData?.transactions?.length) {
+            saveCreditCard({ id: placeholderId, cardNumber: singleResult.creditCardData.cardNumber, cardName: singleResult.creditCardData.cardName, owner: 'client', period: singleResult.creditCardData.period, totalCharged: singleResult.creditCardData.totalCharged, transactions: singleResult.creditCardData.transactions, importDate: new Date().toISOString() });
+          }
           setFileResults(prev => prev.map(f => f.id === placeholderId ? {
             ...f,
-            result: apiResult.type === 'single' ? apiResult.data : null,
+            result: singleResult,
             zipResult: apiResult.type === 'zip' ? apiResult.data : null,
             processing: false,
+            bankAccountSaved: !!(singleResult?.bankAccountData?.transactions?.length),
+            creditCardSaved: !!(singleResult?.creditCardData?.transactions?.length),
           } : f));
         } else if (data.status === 'processing') {
           // Slow file (PDF/Word) - store jobId for polling
