@@ -566,7 +566,7 @@ export default function UploadPage() {
       </div>
 
       {/* Supported file types info */}
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-surface border border-border rounded-xl p-3 flex items-start gap-3">
           <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
             <Shield size={18} className="text-blue-600" />
@@ -592,6 +592,15 @@ export default function UploadPage() {
           <div>
             <p className="text-sm font-semibold">דוחות כרטיסי אשראי</p>
             <p className="text-[10px] text-text-light">פירוט עסקאות, זיהוי תשלומים</p>
+          </div>
+        </div>
+        <div className="bg-surface border border-border rounded-xl p-3 flex items-start gap-3">
+          <div className="bg-red-100 p-2 rounded-lg flex-shrink-0">
+            <Shield size={18} className="text-red-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">הר הביטוח</p>
+            <p className="text-[10px] text-text-light">ניתוח פוליסות ביטוח</p>
           </div>
         </div>
       </div>
@@ -662,6 +671,18 @@ export default function UploadPage() {
             ))}
           </div>
         </details>
+
+        {/* הר הביטוח */}
+        <a href="https://bituachnet.cma.gov.il/" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:border-red-300 hover:bg-red-50 transition-colors">
+          <div className="bg-red-100 p-2 rounded-lg flex-shrink-0">
+            <Shield size={20} className="text-red-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">הר הביטוח - משרד האוצר</p>
+            <p className="text-[10px] text-text-light">הורד את התיק הביטוחי שלך לניתוח פוליסות, כפלים ותובנות</p>
+          </div>
+        </a>
       </div>
 
       {/* Processing indicator */}
