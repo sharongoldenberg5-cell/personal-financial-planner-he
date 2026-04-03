@@ -1624,18 +1624,21 @@ function parseMortgageReportMishkan(lines: string[]): MortgageReport {
         }
 
         // שיעור הריבית בחלק זה: % 4.900000
-        if ((l.includes('שיעור הריבית בחלק זה') || l.includes('שיעור הריבית:')) && interestRate === 0) {
+        if (l.includes('שיעור הריבית בחלק זה') && interestRate === 0) {
           const rateMatch = l.match(/%\s*([\d.]+)/);
           if (rateMatch) interestRate = parseFloat(rateMatch[1]);
-          // For Prime: also check if the next/nearby line has the actual rate
-          if (interestType === 'פריים' || interestType.startsWith('פריים')) {
-            // Look for the effective rate in nearby lines
-            for (let k = j; k < Math.min(j + 5, lines.length); k++) {
-              const effMatch = lines[k].match(/^([\d.]+)$/);
-              if (effMatch) {
-                const eff = parseFloat(effMatch[1]);
-                if (eff > 2 && eff < 10) { interestRate = eff; break; }
-              }
+        }
+
+        // For Prime: get rate from the nearby number line (Y-grouped format)
+        // Pattern: "5.250000 0.850000 % %" followed by "שיעור הריבית:"
+        if (l.includes('שיעור הריבית:') && !l.includes('בחלק זה') && !l.includes('השוואה') && !l.includes('ממוצע')) {
+          // The rate is usually on the previous line
+          const prevLine = lines[j - 1] || '';
+          const rateMatch = prevLine.match(/([\d.]{4,})/);
+          if (rateMatch) {
+            const rate = parseFloat(rateMatch[1]);
+            if (rate > 1 && rate < 15 && (interestType.includes('פריים') || interestRate === 0)) {
+              interestRate = rate;
             }
           }
         }
@@ -1674,15 +1677,27 @@ function parseMortgageReportMishkan(lines: string[]): MortgageReport {
           interestType = 'פריים';
         }
 
-        // Extract Prime spread from "שיעור התוספת לעוגן: - 0.750000 %"
+        // Extract Prime spread from "שיעור התוספת לעוגן"
+        // Note: due to RTL, the value line may come BEFORE or AFTER the label
         if (l.includes('התוספת לעוגן') || l.includes('תוספת לעוגן')) {
-          const spreadLine = l + ' ' + (lines[j + 1] || '');
-          const spreadMatch = spreadLine.match(/([-+])\s*([\d.]+)\s*%/);
+          // Check surrounding lines (before and after)
+          const nearby = [lines[j - 2], lines[j - 1], l, lines[j + 1], lines[j + 2]].filter(Boolean).join(' ');
+          const spreadMatch = nearby.match(/([-+])\s*(0\.\d+)/);
           if (spreadMatch) {
             const sign = spreadMatch[1];
             const spread = parseFloat(spreadMatch[2]);
             if (spread > 0 && spread < 5) {
               interestType = `פריים ${sign}${spread}%`;
+            }
+          }
+        }
+        // Also catch the value line directly: "- 0.750000 % - 0.750000%"
+        if ((interestType === 'פריים') && l.match(/^[-+]\s*0\.\d+/)) {
+          const spreadMatch = l.match(/([-+])\s*(0\.\d+)/);
+          if (spreadMatch) {
+            const spread = parseFloat(spreadMatch[2]);
+            if (spread > 0 && spread < 5) {
+              interestType = `פריים ${spreadMatch[1]}${spread}%`;
             }
           }
         }
