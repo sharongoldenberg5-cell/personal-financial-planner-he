@@ -7,13 +7,14 @@ import type { UserProfile, Gender, MaritalStatus, EmploymentStatus } from '@/lib
 import { Save, CheckCircle, RotateCcw, Plus, X } from 'lucide-react';
 
 const defaultProfile: UserProfile = {
-  id: '', firstName: '', lastName: '', age: 30, gender: 'male',
-  maritalStatus: 'single', numberOfChildren: 0, childrenAges: [],
-  employmentStatus: 'employed', occupation: '',
-  monthlyIncomeGross: 0, monthlyIncome: 0, monthlyExpenses: 0, retirementAge: 67,
-  spouseFirstName: '', spouseLastName: '', spouseAge: 30, spouseGender: 'female',
-  spouseOccupation: '', spouseEmploymentStatus: 'employed',
-  spouseMonthlyIncomeGross: 0, spouseMonthlyIncomeNet: 0, spouseRetirementAge: 65,
+  id: '', firstName: '', lastName: '', age: 0, gender: '' as any,
+  maritalStatus: '' as any, numberOfChildren: 0, childrenAges: [],
+  employmentStatus: '' as any, occupation: '',
+  monthlyIncomeGross: 0, monthlyIncome: 0, monthlyExpenses: 0, retirementAge: 0,
+  spouseFirstName: '', spouseLastName: '', spouseAge: 0, spouseGender: '' as any,
+  spouseOccupation: '', spouseEmploymentStatus: '' as any,
+  spouseMonthlyIncomeGross: 0, spouseMonthlyIncomeNet: 0, spouseRetirementAge: 0,
+  additionalIncomes: [],
   createdAt: '', updatedAt: '',
 };
 
@@ -87,7 +88,7 @@ export default function ProfilePage() {
         <div className="max-w-xs">
           <label className="block text-sm font-medium mb-1">{t('profile.maritalStatus')}</label>
           <select value={profile.maritalStatus} onChange={e => set('maritalStatus', e.target.value)} className={inputClass}>
-            {maritalOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            <option value="">בחר</option>{maritalOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
 
@@ -117,7 +118,7 @@ export default function ProfilePage() {
               <div>
                 <label className="block text-sm font-medium mb-1">{t('profile.gender')}</label>
                 <select value={profile.gender} onChange={e => set('gender', e.target.value)} className={inputClass}>
-                  {genderOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  <option value="">בחר</option>{genderOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             </div>
@@ -126,7 +127,7 @@ export default function ProfilePage() {
               <div>
                 <label className="block text-sm font-medium mb-1">{t('profile.employmentStatus')}</label>
                 <select value={profile.employmentStatus} onChange={e => set('employmentStatus', e.target.value)} className={inputClass}>
-                  {empOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  <option value="">בחר</option>{empOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div>
@@ -248,7 +249,7 @@ export default function ProfilePage() {
                 <div>
                   <label className="block text-sm font-medium mb-1">{t('profile.gender')}</label>
                   <select value={profile.spouseGender || 'female'} onChange={e => set('spouseGender', e.target.value)} className={inputClass}>
-                    {genderOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    <option value="">בחר</option>{genderOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
               </div>
@@ -257,7 +258,7 @@ export default function ProfilePage() {
                 <div>
                   <label className="block text-sm font-medium mb-1">{t('profile.employmentStatus')}</label>
                   <select value={profile.spouseEmploymentStatus || 'employed'} onChange={e => set('spouseEmploymentStatus', e.target.value)} className={inputClass}>
-                    {empOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    <option value="">בחר</option>{empOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
                 <div>
