@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/translations';
 import { getProfile, saveProfile, generateId, clearProfile } from '@/lib/storage';
 import type { UserProfile, Gender, MaritalStatus, EmploymentStatus } from '@/lib/types';
-import { Save, CheckCircle, RotateCcw } from 'lucide-react';
+import { Save, CheckCircle, RotateCcw, Plus, X } from 'lucide-react';
 
 const defaultProfile: UserProfile = {
   id: '', firstName: '', lastName: '', age: 30, gender: 'male',
@@ -149,6 +149,78 @@ export default function ProfilePage() {
             <div>
               <label className="block text-sm font-medium mb-1">{t('profile.retirementAge')}</label>
               <input type="number" value={profile.retirementAge} onChange={e => set('retirementAge', parseInt(e.target.value) || 67)} min={50} max={80} className={inputClass + ' max-w-[120px]'} />
+            </div>
+
+            {/* Additional Incomes */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium">הכנסות נוספות</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const current = profile.additionalIncomes || [];
+                    setProfile({ ...profile, additionalIncomes: [...current, { source: '', amount: 0 }] });
+                  }}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Plus size={12} /> הוסף הכנסה
+                </button>
+              </div>
+              {(profile.additionalIncomes || []).length === 0 ? (
+                <p className="text-xs text-text-light">ביטוח לאומי, שכר דירה, עזרה מההורים, עבודה נוספת...</p>
+              ) : (
+                <div className="space-y-2">
+                  {(profile.additionalIncomes || []).map((inc, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <select
+                        value={inc.source}
+                        onChange={e => {
+                          const updated = [...(profile.additionalIncomes || [])];
+                          updated[idx] = { ...updated[idx], source: e.target.value };
+                          setProfile({ ...profile, additionalIncomes: updated });
+                        }}
+                        className={inputClass + ' flex-1'}
+                      >
+                        <option value="">בחר סוג</option>
+                        <option value="ביטוח לאומי">ביטוח לאומי</option>
+                        <option value="שכר דירה">שכר דירה</option>
+                        <option value="עזרה מההורים">עזרה מההורים</option>
+                        <option value="עבודה נוספת">עבודה נוספת</option>
+                        <option value="פנסיה/קצבה">פנסיה/קצבה</option>
+                        <option value="דמי אבטלה">דמי אבטלה</option>
+                        <option value="מזונות">מזונות</option>
+                        <option value="השקעות">השקעות</option>
+                        <option value="אחר">אחר</option>
+                      </select>
+                      <input
+                        type="number"
+                        placeholder="סכום ₪"
+                        value={inc.amount || ''}
+                        onChange={e => {
+                          const updated = [...(profile.additionalIncomes || [])];
+                          updated[idx] = { ...updated[idx], amount: parseInt(e.target.value) || 0 };
+                          setProfile({ ...profile, additionalIncomes: updated });
+                        }}
+                        className={inputClass + ' w-28'}
+                        min={0}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (profile.additionalIncomes || []).filter((_, i) => i !== idx);
+                          setProfile({ ...profile, additionalIncomes: updated });
+                        }}
+                        className="text-text-light hover:text-danger p-1"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-text-light">
+                    סה"כ הכנסות נוספות: {(profile.additionalIncomes || []).reduce((s, i) => s + i.amount, 0).toLocaleString()} ₪/חודש
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

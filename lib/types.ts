@@ -29,6 +29,8 @@ export interface UserProfile {
   spouseMonthlyIncomeGross: number;
   spouseMonthlyIncomeNet: number;
   spouseRetirementAge: number;
+  // Additional income sources
+  additionalIncomes?: { source: string; amount: number }[];
   createdAt: string;
   updatedAt: string;
 }
