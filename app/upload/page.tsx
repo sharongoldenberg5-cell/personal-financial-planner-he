@@ -103,6 +103,7 @@ interface FileResult {
   bankAccountSaved: boolean;
   creditCardSaved: boolean;
   processing?: boolean;
+  owner?: 'client' | 'spouse';
 }
 
 function getFileIcon(name: string) {
@@ -229,24 +230,22 @@ export default function UploadPage() {
         saveMortgageReport({ ...mortgage, id: fr.id });
         savedMortgageIds.current.add(fr.id);
       }
-      // Mislaka data (from ZIP files)
-      if (fr.zipResult && !savedMislakaIds.current.has(fr.id)) {
+      // Mislaka data (from ZIP files) - save only after owner selected
+      if (fr.zipResult && fr.owner && !savedMislakaIds.current.has(fr.id)) {
         const mislakaFile = fr.zipResult.files?.find(f => f.mislakaData);
         if (mislakaFile?.mislakaData) {
           const md = mislakaFile.mislakaData;
           const allProducts = md.products as unknown as MislakaReport['products'];
 
-          // Save mislaka report (pension page will filter pension/insurance/provident)
           saveMislakaReport({
             id: fr.id,
-            owner: 'client',
+            owner: fr.owner,
             ownerName: md.ownerName,
             ownerId: md.ownerId,
             products: allProducts,
             importDate: new Date().toISOString(),
           });
 
-          // Auto-add education funds and investment provident to assets
           const now = new Date().toISOString();
           for (const p of allProducts) {
             if (p.productType === 'education-fund' || p.productType === 'investment-provident') {
@@ -258,7 +257,7 @@ export default function UploadPage() {
                 currency: 'ILS',
                 monthlyContribution: 0,
                 interestRate: p.returnRate,
-                notes: `מסלקה | ${md.ownerName}`,
+                notes: `מסלקה | ${md.ownerName} (${fr.owner === 'spouse' ? 'בן/בת זוג' : 'לקוח/ה'})`,
                 createdAt: now,
                 updatedAt: now,
               });
@@ -280,10 +279,10 @@ export default function UploadPage() {
         saveCreditCard({ id: fr.id, cardNumber: ccData.cardNumber, cardName: ccData.cardName, owner: 'client', period: ccData.period, totalCharged: ccData.totalCharged, transactions: ccData.transactions, importDate: new Date().toISOString() });
         savedCreditCardIds.current.add(fr.id);
       }
-      // Insurance data (הר הביטוח)
+      // Insurance data (הר הביטוח) - save only after owner selected
       const insData = fr.result?.insuranceData;
-      if (insData && insData.policies.length > 0 && !savedInsuranceIds.current.has(fr.id)) {
-        saveInsuranceReport({ id: fr.id, owner: 'client', ownerIdNumber: insData.ownerIdNumber, reportDate: insData.reportDate, policies: insData.policies as any, importDate: new Date().toISOString() });
+      if (insData && insData.policies.length > 0 && fr.owner && !savedInsuranceIds.current.has(fr.id)) {
+        saveInsuranceReport({ id: fr.id, owner: fr.owner, ownerIdNumber: insData.ownerIdNumber, reportDate: insData.reportDate, policies: insData.policies as any, importDate: new Date().toISOString() });
         savedInsuranceIds.current.add(fr.id);
       }
     }
@@ -704,6 +703,7 @@ export default function UploadPage() {
                         {fr.assetCreated && <span className="text-primary ms-2">✓ {t('upload.assetCreated')}</span>}
                         {fr.bankAccountSaved && <span className="text-blue-600 ms-2">✓ תנועות יובאו</span>}
                         {fr.creditCardSaved && <span className="text-purple-600 ms-2">✓ כרטיס אשראי יובא</span>}
+                        {fr.owner && <span className="text-blue-600 ms-2">{fr.owner === 'client' ? '👤 לקוח/ה' : '👫 בן/בת זוג'}</span>}
                       </p>
                     </div>
                   </div>
@@ -713,6 +713,29 @@ export default function UploadPage() {
                     {isExpanded ? <ChevronUp size={18} className="text-text-light" /> : <ChevronDown size={18} className="text-text-light" />}
                   </div>
                 </div>
+
+                {/* Owner selector for mislaka and insurance */}
+                {!fr.processing && !hasError && (hasMislaka || fr.result?.insuranceData) && (
+                  <div className="px-4 py-2 bg-blue-50 border-t border-blue-200 flex items-center justify-between">
+                    <span className="text-sm font-medium text-blue-800">
+                      {(hasMislaka ? 'מסלקה' : 'הר הביטוח') + ': של מי הקובץ?'}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setFileResults(prev => prev.map(f => f.id === fr.id ? { ...f, owner: 'client' } : f)); }}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${fr.owner === 'client' ? 'bg-blue-600 text-white' : 'bg-white border border-blue-300 text-blue-700 hover:bg-blue-100'}`}
+                      >
+                        לקוח/ה
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setFileResults(prev => prev.map(f => f.id === fr.id ? { ...f, owner: 'spouse' } : f)); }}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${fr.owner === 'spouse' ? 'bg-pink-600 text-white' : 'bg-white border border-pink-300 text-pink-700 hover:bg-pink-100'}`}
+                      >
+                        בן/בת זוג
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Expanded Content */}
                 {isExpanded && !hasError && !fr.processing && (
