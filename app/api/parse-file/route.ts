@@ -955,13 +955,14 @@ async function parsePdfFile(buffer: ArrayBuffer, fileName: string): Promise<Pars
     const fullText = allLines.join('\n');
     const isFIBI = fullText.includes('משנה סכום') && fullText.includes('יתרת') && fullText.includes('הלוואה');
     const isMishkan = (fullText.includes('נתונים לסילוק') && fullText.includes('חלק') && fullText.includes('יתרת הקרן'))
-      || (fullText.includes('טפחות') && fullText.includes('סילוק'));
-    const isHapoalim = fullText.includes('הפועלים') && fullText.includes('משכנתאות') && fullText.includes('יתרה לסילוק');
+      || (fullText.includes('טפחות') && fullText.includes('סילוק'))
+      || (fullText.includes('מזרחי') && fullText.includes('סילוק'));
+    const isHapoalim = !isMishkan && fullText.includes('הפועלים') && fullText.includes('משכנתאות') && fullText.includes('יתרה לסילוק');
     const isMortgageReport = isFIBI || isMishkan || isHapoalim;
     if (isMortgageReport) {
       const mortgage = isFIBI ? parseMortgageReportFIBI(allLines)
-        : isHapoalim ? parseMortgageReportHapoalim(allLines)
-        : parseMortgageReportMishkan(allLines);
+        : isMishkan ? parseMortgageReportMishkan(allLines)
+        : parseMortgageReportHapoalim(allLines);
       // Create records from sub-loans for the table view
       const records: FinancialRecord[] = mortgage.subLoans.map(sl => ({
         id: generateId(),
