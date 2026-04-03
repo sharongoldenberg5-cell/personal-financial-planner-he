@@ -7,7 +7,7 @@ import type { MortgageReport } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Building, Trash2, AlertTriangle, ArrowUpRight, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Legend } from 'recharts';
-// Link removed - upload is in its own tab
+import Link from 'next/link';
 
 // Track colors (rates loaded dynamically from /api/rates)
 const TRACK_COLORS: Record<string, string> = {
@@ -237,7 +237,25 @@ export default function MortgagePage() {
         <h1 className="text-2xl font-bold mb-6">{t('mortgage.title')}</h1>
         <div className="bg-surface rounded-xl shadow-sm border border-border p-12 text-center">
           <Building size={48} className="mx-auto mb-4 text-text-light" />
-          <p className="text-text-light">{t('mortgage.noData')}</p>
+          <p className="text-text-light mb-2">{t('mortgage.noData')}</p>
+          <p className="text-xs text-text-light mb-4">הורד דוח יתרת משכנתא מאתר הבנק שלך (PDF או Excel) והעלה לכאן</p>
+          <div className="flex flex-wrap gap-2 justify-center mb-4">
+            {[
+              { name: 'בנק הפועלים', url: 'https://www.bankhapoalim.co.il/' },
+              { name: 'בנק לאומי', url: 'https://www.leumi.co.il/' },
+              { name: 'מזרחי טפחות', url: 'https://www.mizrahi-tefahot.co.il/' },
+              { name: 'דיסקונט', url: 'https://www.discountbank.co.il/' },
+              { name: 'הבינלאומי', url: 'https://www.fibi.co.il/' },
+            ].map(bank => (
+              <a key={bank.name} href={bank.url} target="_blank" rel="noopener noreferrer"
+                className="px-3 py-1.5 bg-background rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors text-xs">
+                {bank.name}
+              </a>
+            ))}
+          </div>
+          <Link href="/upload" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+            העלה דוח משכנתא
+          </Link>
         </div>
       </div>
     );

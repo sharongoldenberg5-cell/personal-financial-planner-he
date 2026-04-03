@@ -240,7 +240,23 @@ export default function TransactionsPage() {
         <h1 className="text-2xl font-bold mb-6">{t('nav.transactions')}</h1>
         <div className="bg-surface rounded-xl shadow-sm border border-border p-12 text-center">
           <BarChart3 size={48} className="mx-auto mb-4 text-text-light" />
-          <p className="text-text-light mb-4">אין נתוני תנועות. העלה קובץ Excel של תנועות חשבון בנק.</p>
+          <p className="text-text-light mb-2">אין נתוני תנועות.</p>
+          <p className="text-xs text-text-light mb-4">הורד תנועות חשבון (Excel) מהבנק + דוח כרטיס אשראי מחברת האשראי</p>
+          <div className="flex flex-wrap gap-2 justify-center mb-4">
+            {[
+              { name: 'בנק הפועלים', url: 'https://www.bankhapoalim.co.il/' },
+              { name: 'בנק לאומי', url: 'https://www.leumi.co.il/' },
+              { name: 'מזרחי טפחות', url: 'https://www.mizrahi-tefahot.co.il/' },
+              { name: 'כאל', url: 'https://www.cal-online.co.il/' },
+              { name: 'ישראכרט', url: 'https://www.isracard.co.il/' },
+              { name: 'מקס', url: 'https://www.max.co.il/' },
+            ].map(s => (
+              <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer"
+                className="px-3 py-1.5 bg-background rounded-lg hover:bg-primary/10 hover:text-primary transition-colors text-xs">
+                {s.name}
+              </a>
+            ))}
+          </div>
           <Link href="/upload" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
             העלה קובץ
           </Link>

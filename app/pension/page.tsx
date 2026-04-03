@@ -160,10 +160,17 @@ export default function PensionPage() {
         <h1 className="text-2xl font-bold mb-6">{t('pension.title')}</h1>
         <div className="bg-surface rounded-xl shadow-sm border border-border p-12 text-center">
           <Shield size={48} className="mx-auto mb-4 text-text-light" />
-          <p className="text-text-light mb-4">{t('pension.noData')}</p>
-          <Link href="/upload" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
-            {t('pension.uploadMislaka')}
-          </Link>
+          <p className="text-text-light mb-2">{t('pension.noData')}</p>
+          <p className="text-xs text-text-light mb-4">הורד את נתוני הפנסיה שלך מהמסלקה הפנסיונית והעלה לכאן</p>
+          <div className="flex gap-3 justify-center">
+            <a href="https://www.swiftness.co.il/" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <Shield size={16} /> המסלקה הפנסיונית
+            </a>
+            <Link href="/upload" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+              העלה קובץ
+            </Link>
+          </div>
         </div>
       </div>
     );
