@@ -1627,6 +1627,17 @@ function parseMortgageReportMishkan(lines: string[]): MortgageReport {
         if ((l.includes('שיעור הריבית בחלק זה') || l.includes('שיעור הריבית:')) && interestRate === 0) {
           const rateMatch = l.match(/%\s*([\d.]+)/);
           if (rateMatch) interestRate = parseFloat(rateMatch[1]);
+          // For Prime: also check if the next/nearby line has the actual rate
+          if (interestType === 'פריים' || interestType.startsWith('פריים')) {
+            // Look for the effective rate in nearby lines
+            for (let k = j; k < Math.min(j + 5, lines.length); k++) {
+              const effMatch = lines[k].match(/^([\d.]+)$/);
+              if (effMatch) {
+                const eff = parseFloat(effMatch[1]);
+                if (eff > 2 && eff < 10) { interestRate = eff; break; }
+              }
+            }
+          }
         }
 
         // Fallback rate: שיעור הריבית לצרכי השוואה: X.XX %
@@ -1661,6 +1672,19 @@ function parseMortgageReportMishkan(lines: string[]): MortgageReport {
         }
         if ((l.includes('ריבית פריים') || l.includes('פריים')) && !interestType) {
           interestType = 'פריים';
+        }
+
+        // Extract Prime spread from "שיעור התוספת לעוגן: - 0.750000 %"
+        if (l.includes('התוספת לעוגן') || l.includes('תוספת לעוגן')) {
+          const spreadLine = l + ' ' + (lines[j + 1] || '');
+          const spreadMatch = spreadLine.match(/([-+])\s*([\d.]+)\s*%/);
+          if (spreadMatch) {
+            const sign = spreadMatch[1];
+            const spread = parseFloat(spreadMatch[2]);
+            if (spread > 0 && spread < 5) {
+              interestType = `פריים ${sign}${spread}%`;
+            }
+          }
         }
 
         // Indexation from "סוג ההצמדה"
