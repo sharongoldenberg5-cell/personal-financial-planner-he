@@ -104,13 +104,31 @@ export default function MortgagePage() {
     return period?.rate || track.benchmark;
   };
 
+  // Get current prime rate from loaded tracks
+  const currentPrime = trackTypes.find(t => t.key === 'פריים')?.benchmark || 5.5;
+
   const allSubLoans = reports.flatMap(r =>
-    r.subLoans.filter(sl => sl.currentBalance > 0).map(sl => ({
-      ...sl,
-      bank: r.bank,
-      reportDate: r.reportDate,
-      normalizedType: normalizeTrackType(sl.interestType),
-    }))
+    r.subLoans.filter(sl => sl.currentBalance > 0).map(sl => {
+      // For Prime loans: recalculate rate with CURRENT prime
+      let actualRate = sl.interestRate;
+      const type = sl.interestType || '';
+      if (type.includes('פריים') && type.match(/[-+]([\d.]+)/)) {
+        const spreadMatch = type.match(/([-+])([\d.]+)/);
+        if (spreadMatch) {
+          const sign = spreadMatch[1] === '-' ? -1 : 1;
+          const spread = parseFloat(spreadMatch[2]);
+          actualRate = Math.round((currentPrime + sign * spread) * 100) / 100;
+        }
+      }
+      return {
+        ...sl,
+        interestRate: actualRate,
+        originalRate: sl.interestRate, // keep original for reference
+        bank: r.bank,
+        reportDate: r.reportDate,
+        normalizedType: normalizeTrackType(sl.interestType),
+      };
+    })
   );
 
   const totalDebt = allSubLoans.reduce((s, sl) => s + sl.currentBalance, 0);
