@@ -543,7 +543,7 @@ export default function UploadPage() {
   return (
     <div className="max-w-4xl mx-auto"
       onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-      onDragLeave={() => setIsDragging(false)}
+      onDragLeave={e => { e.preventDefault(); if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false); }}
       onDrop={e => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files.length > 0) processFiles(e.dataTransfer.files); }}
     >
       <div className="flex items-center justify-between mb-6">
@@ -554,6 +554,16 @@ export default function UploadPage() {
           </button>
         )}
       </div>
+
+      {/* Drag overlay - shown when dragging file over page */}
+      {isDragging && (
+        <div className="fixed inset-0 bg-primary/10 z-50 flex items-center justify-center pointer-events-none">
+          <div className="bg-white rounded-2xl shadow-2xl p-12 text-center border-4 border-dashed border-primary">
+            <Upload size={64} className="mx-auto mb-4 text-primary" />
+            <p className="text-xl font-bold text-primary">שחרר כדי להעלות</p>
+          </div>
+        </div>
+      )}
 
       {/* Drop Zone */}
       <div
