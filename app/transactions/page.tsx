@@ -247,9 +247,15 @@ export default function TransactionsPage() {
               { name: 'בנק הפועלים', url: 'https://www.bankhapoalim.co.il/' },
               { name: 'בנק לאומי', url: 'https://www.leumi.co.il/' },
               { name: 'מזרחי טפחות', url: 'https://www.mizrahi-tefahot.co.il/' },
-              { name: 'כאל', url: 'https://www.cal-online.co.il/' },
+              { name: 'בנק דיסקונט', url: 'https://www.discountbank.co.il/' },
+              { name: 'הבינלאומי', url: 'https://www.fibi.co.il/' },
+              { name: 'בנק יהב', url: 'https://www.yahav.co.il/' },
+              { name: 'כאל (CAL)', url: 'https://www.cal-online.co.il/' },
               { name: 'ישראכרט', url: 'https://www.isracard.co.il/' },
-              { name: 'מקס', url: 'https://www.max.co.il/' },
+              { name: 'מקס (MAX)', url: 'https://www.max.co.il/' },
+              { name: 'לאומי קארד', url: 'https://www.leumi-card.co.il/' },
+              { name: 'אמריקן אקספרס', url: 'https://www.americanexpress.co.il/' },
+              { name: 'דיינרס', url: 'https://www.diners.co.il/' },
             ].map(s => (
               <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer"
                 className="px-3 py-1.5 bg-background rounded-lg hover:bg-primary/10 hover:text-primary transition-colors text-xs">

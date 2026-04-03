@@ -5,7 +5,8 @@ import { useTranslation } from '@/lib/translations';
 import { getLiabilities, saveLiability, deleteLiability, generateId, calculateTotalLiabilities, clearAllLiabilities } from '@/lib/storage';
 import type { Liability, LiabilityCategory } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
-import { Plus, Pencil, Trash2, X, TrendingDown, RotateCcw } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, TrendingDown, RotateCcw, Building, Upload } from 'lucide-react';
+import Link from 'next/link';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 const COLORS = ['#dc2626', '#d97706', '#7c3aed', '#64748b'];
@@ -117,7 +118,29 @@ export default function LiabilitiesPage() {
           {liabilities.length === 0 ? (
             <div className="text-center py-12">
               <TrendingDown size={48} className="mx-auto mb-4 text-text-light" />
-              <p className="text-text-light">{t('common.noData')}</p>
+              <p className="text-text-light mb-2">אין התחייבויות. הוסף ידנית או העלה דוח משכנתא/הלוואה.</p>
+              <p className="text-xs text-text-light mb-4">הורד דוח יתרת משכנתא או הלוואה מאתר הבנק שלך</p>
+              <div className="flex flex-wrap gap-2 justify-center mb-4">
+                {[
+                  { name: 'בנק הפועלים', url: 'https://www.bankhapoalim.co.il/' },
+                  { name: 'בנק לאומי', url: 'https://www.leumi.co.il/' },
+                  { name: 'מזרחי טפחות', url: 'https://www.mizrahi-tefahot.co.il/' },
+                  { name: 'בנק דיסקונט', url: 'https://www.discountbank.co.il/' },
+                  { name: 'הבינלאומי (FIBI)', url: 'https://www.fibi.co.il/' },
+                  { name: 'בנק ירושלים', url: 'https://www.bankjerusalem.co.il/' },
+                  { name: 'בנק יהב', url: 'https://www.yahav.co.il/' },
+                  { name: 'ONE ZERO', url: 'https://www.onezerobank.com/' },
+                  { name: 'בנק מסד', url: 'https://www.bankmasad.co.il/' },
+                ].map(b => (
+                  <a key={b.name} href={b.url} target="_blank" rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-background rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors text-xs">
+                    <Building size={12} className="inline me-1" />{b.name}
+                  </a>
+                ))}
+              </div>
+              <Link href="/upload" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+                <Upload size={16} /> העלה דוח משכנתא/הלוואה
+              </Link>
             </div>
           ) : (
             <div className="space-y-3">

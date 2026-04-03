@@ -246,6 +246,8 @@ export default function MortgagePage() {
               { name: 'מזרחי טפחות', url: 'https://www.mizrahi-tefahot.co.il/' },
               { name: 'דיסקונט', url: 'https://www.discountbank.co.il/' },
               { name: 'הבינלאומי', url: 'https://www.fibi.co.il/' },
+              { name: 'בנק ירושלים', url: 'https://www.bankjerusalem.co.il/' },
+              { name: 'בנק יהב', url: 'https://www.yahav.co.il/' },
             ].map(bank => (
               <a key={bank.name} href={bank.url} target="_blank" rel="noopener noreferrer"
                 className="px-3 py-1.5 bg-background rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors text-xs">
